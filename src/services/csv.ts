@@ -1,5 +1,4 @@
-import type { BookMetadata, CollectionCode, ItemTypeCode } from '@/types'
-import { COLLECTION_LABELS, ITEM_TYPE_LABELS } from '@/constants/mappings'
+import type { BookMetadata } from '@/types'
 
 const HEADERS = [
   'Title', 'Sub Title', 'Other Title', 'Author', 'Second Author', 'Editor',
@@ -30,8 +29,8 @@ function toRow(book: BookMetadata): string[] {
     book.isbn,
     book.category,
     book.genre,
-    book.collection ? COLLECTION_LABELS[book.collection as CollectionCode] : '',
-    book.itemType ? ITEM_TYPE_LABELS[book.itemType as ItemTypeCode] : '',
+    book.collection,
+    book.itemType,
     book.pageCount,
     book.language,
     book.edition,

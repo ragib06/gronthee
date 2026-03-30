@@ -205,7 +205,7 @@ Where `Base64Image` is `{ data: string; mimeType: string }`.
 2. Write `src/hooks/useBookHistory.ts` — exposes `{ books, addBook, updateBook, deleteBook }`
 3. Write `src/hooks/useUserPreferences.ts` — exposes `{ preferences, recordCorrection, applyPreferences }`
 4. Integrate preference recording: in `BookForm`, on save compare final field values vs original AI values; if different, call `recordCorrection(fieldName, original, corrected)`
-5. Write `src/services/csv.ts` — serialize `BookMetadata[]` to CSV string, trigger download via Blob URL. `exportToCsv(books, filename)` accepts a filename (appends `.csv` if missing). `defaultCsvFilename(username)` returns `gronthee-<username>-<yyyy-mm-dd-hh-mm-ss>.csv`. All metadata fields including Summary are included in CSV output.
+5. Write `src/services/csv.ts` — serialize `BookMetadata[]` to CSV string, trigger download via Blob URL. `exportToCsv(books, filename)` accepts a filename (appends `.csv` if missing). `defaultCsvFilename(username)` returns `gronthee-<username>-<yyyy-mm-dd-hh-mm-ss>.csv`. All metadata fields including Summary are included in CSV output. `Collection` and `Item Type` export the raw abbreviated codes (e.g. `FIC`, `BK`) not the human-readable labels.
 6. Wire "Save" button in `BookEditorPage` → `addBook` → navigate to history
 7. Wire "Export CSV" button in `HistoryPage` → opens `ExportDialog` with editable filename pre-filled to `gronthee-<username>-<yyyy-mm-dd-hh-mm-ss>.csv` → on confirm calls `exportToCsv`
 8. Wire "Delete" in `HistoryPage` → `deleteBook` with `ConfirmDialog`
