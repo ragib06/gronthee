@@ -44,6 +44,12 @@ const ERROR_CONFIGS: Record<Exclude<CameraState, 'loading' | 'ready'>, ErrorConf
   },
 }
 
+// Mobile phones get back camera; desktops and tablets get front camera
+const isMobilePhone = /Android.*Mobile|iPhone|iPod/i.test(navigator.userAgent)
+const VIDEO_CONSTRAINTS = {
+  facingMode: isMobilePhone ? { ideal: 'environment' } : 'user',
+}
+
 export default function WebcamCapture({ onCapture, disabled }: WebcamCaptureProps) {
   const webcamRef = useRef<Webcam>(null)
   const [cameraState, setCameraState] = useState<CameraState>(
@@ -95,6 +101,7 @@ export default function WebcamCapture({ onCapture, disabled }: WebcamCaptureProp
             key={retryKey}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
+            videoConstraints={VIDEO_CONSTRAINTS}
             className="w-full"
             onUserMedia={handleUserMedia}
             onUserMediaError={handleUserMediaError}
