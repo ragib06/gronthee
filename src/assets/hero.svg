@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <!-- Book body -->
+  <rect x="20" y="30" width="64" height="72" rx="4" fill="#6366f1"/>
+  <!-- Book spine -->
+  <rect x="20" y="30" width="10" height="72" rx="2" fill="#4338ca"/>
+  <!-- Book pages (right edge) -->
+  <rect x="76" y="33" width="5" height="66" rx="1" fill="#e0e7ff"/>
+  <!-- Horizontal lines (pages detail) -->
+  <line x1="36" y1="50" x2="72" y2="50" stroke="#a5b4fc" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="36" y1="60" x2="72" y2="60" stroke="#a5b4fc" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="36" y1="70" x2="72" y2="70" stroke="#a5b4fc" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="36" y1="80" x2="60" y2="80" stroke="#a5b4fc" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Magnifying glass circle -->
+  <circle cx="82" cy="42" r="22" fill="white" fill-opacity="0.15" stroke="white" stroke-width="5"/>
+  <circle cx="82" cy="42" r="14" fill="#1e1b4b" fill-opacity="0.55"/>
+
+  <!-- Magnifying glass handle -->
+  <line x1="91" y1="56" x2="106" y2="76" stroke="white" stroke-width="6" stroke-linecap="round"/>
+</svg>

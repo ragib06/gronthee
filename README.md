@@ -2,7 +2,7 @@
 
 A web app for cataloging books by scanning their covers or title pages with AI. Point your camera or drop an image — Gronthee extracts the metadata, lets you review and correct it, and keeps a searchable history you can export to CSV.
 
-![Book scanning app](src/assets/hero.png)
+![Book scanning app](src/assets/hero.svg)
 
 ---
 
@@ -14,7 +14,7 @@ A web app for cataloging books by scanning their covers or title pages with AI. 
 - **Edit & correct** — review every extracted field in a structured form before saving
 - **Preference learning** — the app remembers your corrections and auto-applies them on future scans
 - **Search & sort** — filter history by title or author; sort by date or title
-- **CSV export** — export your full library with a personalised filename (`gronthee-<username>-<timestamp>.csv`)
+- **CSV export** — export your full library with a personalised filename (`gronthee-<username>-<yyyy-mm-dd-hh-mm-ss>.csv`)
 - **Reset** — clear all data (username, history, preferences) with a single confirmed action
 
 ---
@@ -48,15 +48,23 @@ cd gronthee
 npm install
 ```
 
-### 3. Configure AI providers
+### 3. Configure API keys
 
-Copy the example config and fill in your API keys:
+Create a `.env.local` file in the project root with your API keys:
 
 ```bash
-cp ai-config.example.json ai-config.json
+VITE_ANTHROPIC_API_KEY=your_anthropic_api_key
+VITE_OPENAI_API_KEY=your_openai_api_key
+VITE_GEMINI_API_KEY=your_gemini_api_key
 ```
 
-Edit `ai-config.json`:
+You only need keys for the providers you intend to use. `.env.local` is gitignored — your keys are never committed.
+
+> **Deploying to Vercel?** Add these as environment variables in the Vercel dashboard (Settings → Environment Variables) instead of using `.env.local`.
+
+### 4. (Optional) Customise AI providers and models
+
+The provider and model list lives in `ai-config.json` at the project root. It is committed to the repo and contains no secrets. Edit it to add, remove, or reorder providers and models:
 
 ```json
 {
@@ -66,38 +74,19 @@ Edit `ai-config.json`:
     {
       "provider": "anthropic",
       "label": "Anthropic",
-      "apiKey": "YOUR_ANTHROPIC_API_KEY",
       "models": [
         { "id": "claude-opus-4-5", "label": "Claude Opus 4.5" },
         { "id": "claude-sonnet-4-5", "label": "Claude Sonnet 4.5" },
         { "id": "claude-haiku-3-5", "label": "Claude Haiku 3.5" }
-      ]
-    },
-    {
-      "provider": "openai",
-      "label": "OpenAI",
-      "apiKey": "YOUR_OPENAI_API_KEY",
-      "models": [
-        { "id": "gpt-4o", "label": "GPT-4o" },
-        { "id": "gpt-4o-mini", "label": "GPT-4o Mini" }
-      ]
-    },
-    {
-      "provider": "gemini",
-      "label": "Google Gemini",
-      "apiKey": "YOUR_GEMINI_API_KEY",
-      "models": [
-        { "id": "gemini-2.0-flash", "label": "Gemini 2.0 Flash" },
-        { "id": "gemini-1.5-pro", "label": "Gemini 1.5 Pro" }
       ]
     }
   ]
 }
 ```
 
-> `ai-config.json` is gitignored — your keys are never committed.
+See `ai-config.example.json` for the full default configuration.
 
-### 4. Start the dev server
+### 5. Start the dev server
 
 ```bash
 npm run dev
@@ -123,13 +112,14 @@ npm run lint       # Run ESLint
 ### Scan
 1. Select an AI model from the dropdown in the top bar
 2. Upload images (drag & drop or file picker) or switch to Webcam tab and capture
-3. Up to 4 images per scan — cover, title page, copyright page, back cover
-4. Click **Scan Book** — the images are sent to the selected AI provider
-5. All metadata is returned in English (translated if needed)
+3. On **mobile phones** the back (rear) camera is used by default — ideal for scanning physical books. On desktops and tablets the front camera is used.
+4. Up to 4 images per scan — cover, title page, copyright page, back cover
+5. Click **Scan Book** — the images are sent to the selected AI provider
+6. All metadata is returned in English (translated if needed)
 
 ### Review & Save
 - Every extracted field is shown in an editable form
-- Required fields are marked with `*` — saving is blocked until all are filled
+- Required fields are marked with `*` — saving is blocked until all are filled; a banner at the bottom of the form explains what to fix
 - Optional fields: Subtitle, Other Title, Second Author, Editor, Translator, Illustrator
 - Correct any mistakes — corrections are remembered and auto-applied on future scans
 
@@ -155,7 +145,7 @@ npm run lint       # Run ESLint
 | Publisher | Yes | |
 | Published Year | Yes | YYYY format |
 | ISBN | Yes | |
-| Category | Yes | e.g. Fiction, Non-Fiction |
+| Category | Yes | Free text; AI suggests "Fiction" or "Non Fiction" |
 | Genre | Yes | e.g. Poetry, Biography |
 | Collection | Yes | Coded field — see below |
 | Item Type | Yes | Coded field — see below |
@@ -229,7 +219,8 @@ To wipe everything, use the **Reset all data** link at the bottom of any page.
    ): Promise<Partial<BookMetadata>>
    ```
 3. Register it in `src/services/ai/index.ts`
-4. Add the provider entry to `ai-config.json`
+4. Add the provider entry (without any `apiKey` field) to `ai-config.json`
+5. Add the corresponding `VITE_<PROVIDER>_API_KEY` to `.env.local` (and to Vercel env vars for deployments)
 
 ---
 
