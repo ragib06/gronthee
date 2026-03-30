@@ -1,8 +1,8 @@
-# Gronthee
+
+![Gronthee](src/assets/logo.svg)
 
 A web app for cataloging books by scanning their covers or title pages with AI. Point your camera or drop an image — Gronthee extracts the metadata, lets you review and correct it, and keeps a searchable history you can export to CSV.
 
-![Book scanning app](src/assets/hero.png)
 
 ---
 

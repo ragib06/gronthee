@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" width="180" height="44" fill="none">
+  <!-- BookOpen icon (22px, indigo-600 #4f46e5), centred on 22x22 box -->
+  <g transform="translate(0, 11)" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left page -->
+    <path d="M2 3C2 3 6 2 11 2C14 2 16.5 3 18 4V20C16.5 19 14 18 11 18C6 18 2 19 2 19V3Z"/>
+    <!-- Right page -->
+    <path d="M18 4C19.5 3 22 2 25 2C28 2 30 3 30 3V19C30 19 27.5 18 25 18C22 18 19.5 19 18 20V4Z"/>
+    <!-- Spine -->
+    <line x1="16" y1="4" x2="16" y2="20"/>
+  </g>
+
+  <!-- "Gronthee" text -->
+  <text
+    x="38"
+    y="28"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="20"
+    font-weight="600"
+    fill="#4f46e5"
+    letter-spacing="-0.3"
+  >Gronthee</text>
+</svg>
