@@ -33,7 +33,7 @@ Gronthee is a web-based application designed to automate the process of catalogi
     - **Summary**: A brief 1-2 sentence summary of the book.
 
 ### 2. Data Management
-- **Edit Form**: A comprehensive form allowing users to review and correct AI-extracted data before saving. Most fields are mandatory — saving is blocked if any required field is empty, with inline error messages and red border highlights on each invalid field. Errors clear as the user fills in each field. Optional fields (no validation) are: Subtitle, Other Title, Second Author, Editor, Translator, Illustrator.
+- **Edit Form**: A comprehensive form allowing users to review and correct AI-extracted data before saving. Most fields are mandatory — saving is blocked if any required field is empty, with inline error messages and red border highlights on each invalid field. Errors clear as the user fills in each field. When save fails due to validation, a red error banner is shown below the form fields instructing the user to fill in all highlighted fields; the banner disappears on a successful save. Optional fields (no validation) are: Subtitle, Other Title, Second Author, Editor, Translator, Illustrator.
 - **User Preference Storage**: The system learns from user edits. If a user manually corrects a field (e.g., changes a misspelled publisher name), the system stores this mapping in local storage. Future scans that produce the same original value will automatically be corrected to the user's preferred value.
 - **Display View**: A clean, structured view of the extracted metadata.
 - **History Tracking**: Saves scanned books to the browser's local storage for persistence across sessions.

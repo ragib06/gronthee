@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Save } from 'lucide-react'
+import { AlertCircle, Save } from 'lucide-react'
 import type { BookMetadata, CollectionCode, ItemTypeCode } from '@/types'
 import { COLLECTION_LABELS, ITEM_TYPE_LABELS } from '@/constants/mappings'
 import FormField from './FormField'
@@ -93,6 +93,7 @@ function validate(form: FormState): Errors {
 export default function BookForm({ initialValues, scanDate, onSave, onCancel }: BookFormProps) {
   const [form, setForm] = useState<FormState>(() => initForm(initialValues))
   const [errors, setErrors] = useState<Errors>({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
 
   function set(field: keyof FormState) {
     return (val: string) => {
@@ -105,8 +106,10 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
     const errs = validate(form)
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
+      setSubmitAttempted(true)
       return
     }
+    setSubmitAttempted(false)
     const data: Omit<BookMetadata, 'id'> = {
       title: form.title.trim(),
       subTitle: form.subTitle.trim(),
@@ -201,8 +204,16 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
         <FormField id="summary" label="Summary" value={form.summary} onChange={set('summary')} type="textarea" placeholder="Brief summary of the book" required error={errors.summary} />
       </div>
 
+      {/* Validation error summary */}
+      {submitAttempted && Object.keys(errors).length > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mt-6">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span>Some required fields are missing. Please fill in all highlighted fields above before saving.</span>
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="flex justify-end gap-3 mt-8">
+      <div className="flex justify-end gap-3 mt-4">
         <button
           onClick={onCancel}
           className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
