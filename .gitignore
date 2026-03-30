@@ -12,8 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Local AI config (contains API keys — never commit)
-ai-config.json
 
 # Editor directories and files
 .vscode/*

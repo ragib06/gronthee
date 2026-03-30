@@ -105,7 +105,7 @@ gronthee/
 3. Configure Tailwind CSS v4 via `@tailwindcss/vite` plugin in `vite.config.ts`
 4. Create `tailwind.config.ts` with custom theme tokens (font, colors, border-radius)
 5. Set up `tsconfig.json` with `"paths"` alias (`@/` → `src/`)
-6. Create `.gitignore` — include `.env.local` and `node_modules`
+6. Create `.gitignore` — include `.env.local` and `node_modules`; `ai-config.json` is committed (no secrets — API keys come from env vars)
 7. Write `.env.example` with placeholder values (`VITE_ANTHROPIC_API_KEY=`, `VITE_OPENAI_API_KEY=`, `VITE_GEMINI_API_KEY=`)
 8. Bootstrap `src/main.tsx` and blank `src/App.tsx`
 

@@ -1,0 +1,31 @@
+{
+  "defaultProvider": "anthropic",
+  "defaultModelId": "claude-opus-4-5",
+  "providers": [
+    {
+      "provider": "anthropic",
+      "label": "Anthropic",
+      "models": [
+        { "id": "claude-opus-4-5", "label": "Claude Opus 4.5" },
+        { "id": "claude-sonnet-4-5", "label": "Claude Sonnet 4.5" },
+        { "id": "claude-haiku-3-5", "label": "Claude Haiku 3.5" }
+      ]
+    },
+    {
+      "provider": "openai",
+      "label": "OpenAI",
+      "models": [
+        { "id": "gpt-4o", "label": "GPT-4o" },
+        { "id": "gpt-4o-mini", "label": "GPT-4o Mini" }
+      ]
+    },
+    {
+      "provider": "gemini",
+      "label": "Google Gemini",
+      "models": [
+        { "id": "gemini-3-flash-preview", "label": "Gemini 3.0 Flash" },
+        { "id": "gemini-3.1-pro-preview", "label": "Gemini 3.1 Pro" }
+      ]
+    }
+  ]
+}
