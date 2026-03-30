@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" width="180" height="44" fill="none">
-  <!-- BookOpen icon (22px, indigo-600 #4f46e5), centred on 22x22 box -->
-  <g transform="translate(0, 11)" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 150" width="600" height="150" fill="none">
+  <!-- BookOpen icon scaled ~4x (original 22px → ~88px), vertically centred -->
+  <g transform="translate(8, 31) scale(3.8)" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <!-- Left page -->
     <path d="M2 3C2 3 6 2 11 2C14 2 16.5 3 18 4V20C16.5 19 14 18 11 18C6 18 2 19 2 19V3Z"/>
     <!-- Right page -->
@@ -11,12 +11,12 @@
 
   <!-- "Gronthee" text -->
   <text
-    x="38"
-    y="28"
+    x="130"
+    y="105"
     font-family="system-ui, -apple-system, sans-serif"
-    font-size="20"
+    font-size="72"
     font-weight="600"
     fill="#4f46e5"
-    letter-spacing="-0.3"
+    letter-spacing="-1"
   >Gronthee</text>
 </svg>
