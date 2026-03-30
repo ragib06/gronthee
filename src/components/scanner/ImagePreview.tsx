@@ -28,7 +28,7 @@ export default function ImagePreview({ images, onRemove }: ImagePreviewProps) {
             />
             <button
               onClick={() => onRemove(i)}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
               aria-label={`Remove image ${i + 1}`}
             >
               <X size={10} />
