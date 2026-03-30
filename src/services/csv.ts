@@ -42,7 +42,10 @@ function toRow(book: BookMetadata): string[] {
 }
 
 export function defaultCsvFilename(username: string): string {
-  return `gronthee-${username}-${Date.now()}.csv`
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const datetime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+  return `gronthee-${username}-${datetime}.csv`
 }
 
 export function exportToCsv(books: BookMetadata[], filename: string): void {
