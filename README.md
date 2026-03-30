@@ -207,6 +207,56 @@ To wipe everything, use the **Reset all data** link at the bottom of any page.
 
 ---
 
+## Customising Coded Field Mappings
+
+The **Collection** and **Item Type** fields use short codes internally (e.g. `FIC`, `BK`). The codes are what get stored and exported to CSV; the human-readable labels are shown in the UI dropdown and used in the AI prompt. To add, remove, or rename a mapping you need to update three files in sync.
+
+### 1. Update the type definition — `src/types/index.ts`
+
+Add or remove codes from the union type:
+
+```typescript
+// Collection codes
+export type CollectionCode =
+  | 'ART' | 'BIO' | 'CHI' | 'COLL' | 'CRI'
+  | 'FIC' | 'HYST' | 'MYTH' | 'MISC' | 'NFIC'
+  | 'PLAY' | 'POET' | 'REF' | 'SCIFI' | 'SPI'
+  | 'SPO' | 'TRVL' | 'COOK' | 'MUSC' | 'ESSY'
+  | 'GRPH'  // ← example: adding Graphic Novel
+
+// Item type codes
+export type ItemTypeCode = 'BK' | 'ASB' | 'RB' | 'REF' | 'MG' | 'COM'  // ← example: adding Comic
+```
+
+### 2. Update the label map — `src/constants/mappings.ts`
+
+Add the matching entry to `COLLECTION_LABELS` or `ITEM_TYPE_LABELS`. The reverse maps (`LABEL_TO_COLLECTION`, `LABEL_TO_ITEM_TYPE`) are derived automatically — no changes needed there.
+
+```typescript
+export const COLLECTION_LABELS: Record<CollectionCode, string> = {
+  // ... existing entries ...
+  GRPH: 'Graphic Novel',  // ← new entry
+}
+
+export const ITEM_TYPE_LABELS: Record<ItemTypeCode, string> = {
+  // ... existing entries ...
+  COM: 'Comic',  // ← new entry
+}
+```
+
+### 3. Update the AI prompt — `src/services/ai/prompt.ts`
+
+Add the new human-readable label to the list the AI is instructed to use, so it can map scanned books to the new category:
+
+```
+For "collection", return one of these exact human-readable values or "":
+  Art, Biography, ..., Graphic Novel
+```
+
+> **Removing a mapping**: remove the code from the type union, the label map, and the prompt list. Existing saved books that carry the old code will still display correctly in history (the label lookup falls back gracefully), but the code will no longer appear in the Collection dropdown.
+
+---
+
 ## Adding an AI Provider
 
 1. Add the provider's SDK: `npm install <sdk>`
