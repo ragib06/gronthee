@@ -170,7 +170,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
       {/* Classification */}
       <h3 className={sectionHeading}>Classification</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField id="category" label="Category" value={form.category} onChange={set('category')} placeholder="Category" required error={errors.category} />
+        <FormField id="category" label="Category" value={form.category} onChange={set('category')} placeholder="Fiction or Non Fiction" required error={errors.category} />
         <FormField id="genre" label="Genre" value={form.genre} onChange={set('genre')} placeholder="Genre" required error={errors.genre} />
         <FormField
           id="collection"

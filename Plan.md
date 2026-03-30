@@ -141,6 +141,7 @@ gronthee/
    - All 21 metadata fields rendered
    - `FormField` reusable component (input, textarea, select, read-only); accepts `error` prop — shows red border + inline error message below the field
    - Required fields validated on save: title, author, publisher, publishedYear, isbn, category, genre, collection, itemType, pageCount, language, edition, publicationPlace, summary. Optional: subTitle, otherTitle, secondAuthor, editor, translator, illustrator. Save is blocked and all empty required fields are highlighted simultaneously; each error clears as the user fills in that field.
+   - `category` is a free-text field; AI pre-fills it as "Fiction" or "Non Fiction" but the user can override
    - `ScanDateField` for the non-editable date
    - Image thumbnail grid: `grid-cols-2`, `max-w-[240px]` on mobile to keep thumbnails compact (~120px each); `md:max-w-none` on desktop
    - Zoom modal: 4 zoom steps (1×, 1.5×, 2×, 3×) via bottom toolbar; tap image to toggle 1×↔2×; scrollable at zoom > 1×; zoom badge top-left; resets on close

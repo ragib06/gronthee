@@ -21,7 +21,7 @@ Gronthee is a web-based application designed to automate the process of catalogi
     - **Publisher**: Publishing house name.
     - **Published Year**: Year of publication in YYYY format.
     - **ISBN**: International Standard Book Number.
-    - **Category**: High-level classification (e.g., Fiction, Non-Fiction).
+    - **Category**: High-level classification. Free-text field; AI is instructed to return "Fiction" or "Non Fiction", but the user may override with any value.
     - **Genre**: Specific genre (e.g., Poetry, Novel, Biography, Travel).
     - **Collection**: A coded field mapped to specific categories (see Mappings below).
     - **Item Type**: A coded field representing the physical type of the item (see Mappings below).
