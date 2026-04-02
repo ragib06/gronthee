@@ -6,7 +6,7 @@ export type CollectionCode =
 
 export type ItemTypeCode = 'BK' | 'ASB' | 'RB' | 'REF' | 'MG'
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini'
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
 export interface BookMetadata {
   id: string

@@ -13,6 +13,8 @@ function getApiKey(provider: AIProvider): string {
       return import.meta.env.VITE_OPENAI_API_KEY ?? ''
     case 'gemini':
       return import.meta.env.VITE_GEMINI_API_KEY ?? ''
+    case 'openrouter':
+      return import.meta.env.VITE_OPENROUTER_API_KEY ?? ''
   }
 }
 

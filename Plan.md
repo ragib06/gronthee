@@ -172,6 +172,7 @@ gronthee/
    - `src/services/ai/anthropic.ts`
    - `src/services/ai/openai.ts`
    - `src/services/ai/gemini.ts`
+   - `src/services/ai/openrouter.ts` (OpenAI-compatible, baseURL: `https://openrouter.ai/api/v1`)
 3. Write `src/services/ai/index.ts` — dispatcher that selects adapter by `provider` string
 4. Write `src/utils/imageToBase64.ts` — converts `File` objects to base64 strings
 5. Write the AI extraction prompt (see Section 5)
@@ -445,6 +446,7 @@ Return this exact JSON structure:
 VITE_ANTHROPIC_API_KEY=
 VITE_OPENAI_API_KEY=
 VITE_GEMINI_API_KEY=
+VITE_OPENROUTER_API_KEY=
 ```
 
 Developers copy this to `.env.local` and fill in their keys. In production, these are set as Vercel environment variables via the Vercel dashboard or `vercel env add`.
@@ -486,6 +488,14 @@ export const AI_CONFIG: AIConfig = {
       models: [
         { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
         { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+      ],
+    },
+    {
+      provider: 'openrouter',
+      label: 'OpenRouter',
+      apiKey: import.meta.env.VITE_OPENROUTER_API_KEY ?? '',
+      models: [
+        { id: 'qwen/qwen3.6-plus:free', label: 'Qwen 3.6 Plus' },
       ],
     },
   ],

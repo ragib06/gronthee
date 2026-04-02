@@ -25,6 +25,14 @@
         { "id": "gemini-3-flash-preview", "label": "Gemini 3.0 Flash" },
         { "id": "gemini-3.1-pro-preview", "label": "Gemini 3.1 Pro" }
       ]
+    },
+    {
+      "provider": "openrouter",
+      "label": "OpenRouter",
+      "models": [
+        { "id": "qwen/qwen3.6-plus:free", "label": "Qwen 3.6 Plus" },
+        { "id": "meta-llama/llama-4-maverick", "label": "Llama 4 Maverick" }
+      ]
     }
   ]
 }
