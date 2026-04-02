@@ -22,7 +22,7 @@ export async function extractWithOpenRouter(
   type ReasoningEffort = 'xhigh' | 'high' | 'medium' | 'low' | 'minimal' | 'none'
   const params: OpenAI.ChatCompletionCreateParamsNonStreaming & { reasoning?: { effort: ReasoningEffort } } = {
     model: modelId,
-    max_tokens: 1024,
+    max_tokens: 8192,
     reasoning: { effort: 'medium' },
     messages: [
       {

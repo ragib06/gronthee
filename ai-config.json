@@ -1,6 +1,6 @@
 {
-  "defaultProvider": "anthropic",
-  "defaultModelId": "claude-opus-4-5",
+  "defaultProvider": "openrouter",
+  "defaultModelId": "qwen/qwen3.6-plus:free",
   "providers": [
     {
       "provider": "anthropic",
@@ -30,8 +30,9 @@
       "provider": "openrouter",
       "label": "OpenRouter",
       "models": [
-        { "id": "qwen/qwen3.6-plus:free", "label": "Qwen 3.6 Plus" },
-        { "id": "meta-llama/llama-4-maverick", "label": "Llama 4 Maverick" }
+        { "id": "qwen/qwen3.6-plus:free", "label": "Qwen 3.6 Plus (free)" },
+        { "id": "meta-llama/llama-4-maverick", "label": "Llama 4 Maverick" },
+        { "id": "nvidia/nemotron-nano-12b-v2-vl", "label": "Nemotron Nano 12B v2" }
       ]
     }
   ]
