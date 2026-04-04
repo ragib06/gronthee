@@ -154,7 +154,7 @@ gronthee/
 
 **Component notes**:
 
-- `ModelSelector` reads the provider/model list from `src/config/ai-config.ts` (static config, no secrets). It renders a two-level dropdown: Provider → Model. The selected `{provider, modelId}` is held in React state at `App.tsx` level and passed down via props or a small React context. The API key for the selected provider is resolved at scan time from `import.meta.env` (e.g., `import.meta.env.VITE_ANTHROPIC_API_KEY`).
+- `ModelSelector` reads the provider/model list from `src/config/ai-config.ts` (static config, no secrets). It renders a two-level dropdown: Provider → Model. The selected `{provider, modelId}` is held in React state at `App.tsx` level and passed down via props. The API key for the selected provider is resolved at scan time from `import.meta.env`. **The selection is persisted to `localStorage` under `gronthee:selectedModel`** (only `provider` and `modelId` — no API key) and restored on next load via `loadSavedModel()` in `App.tsx`, falling back to `getDefaultModel()` if the saved value is absent or invalid.
 - `BookForm` fields use `Collection` and `ItemType` dropdowns populated from `src/constants/mappings.ts`.
 - `ScanDateField` displays `new Date().toISOString().slice(0, 10)` and is visually distinct (grey background, lock icon).
 - All animations use `motion/react`. Page transitions use `AnimatePresence` + `motion.div`. Cards use staggered `initial/animate/exit` variants.
@@ -364,6 +364,7 @@ export interface Base64Image {
 | `gronthee:books` | `BookMetadata[]` | All saved book records |
 | `gronthee:preferences` | `UserPreferences` | Per-field correction maps |
 | `gronthee-username` | `string` | Username entered at first launch |
+| `gronthee:selectedModel` | `{provider, modelId}` | Last-used AI provider and model (API key excluded) |
 
 ---
 

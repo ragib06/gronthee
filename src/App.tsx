@@ -6,10 +6,25 @@ import BookEditorPage from '@/components/editor/BookEditorPage'
 import HistoryPage from '@/components/history/HistoryPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
 import { useBookHistory } from '@/hooks/useBookHistory'
-import { getDefaultModel } from '@/config/ai-config'
+import { getDefaultModel, resolveModel } from '@/config/ai-config'
 import type { BookMetadata, SelectedModel } from '@/types'
 
 const USERNAME_KEY = 'gronthee-username'
+const MODEL_KEY = 'gronthee:selectedModel'
+
+function loadSavedModel(): SelectedModel {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MODEL_KEY) ?? '{}') as { provider?: string; modelId?: string }
+    if (saved.provider && saved.modelId) {
+      return resolveModel(saved.provider as SelectedModel['provider'], saved.modelId)
+    }
+  } catch {}
+  return getDefaultModel()
+}
+
+function saveModel(model: SelectedModel) {
+  localStorage.setItem(MODEL_KEY, JSON.stringify({ provider: model.provider, modelId: model.modelId }))
+}
 
 export type Page = 'scan' | 'editor' | 'history'
 
@@ -25,7 +40,12 @@ export type NavigateFn = (page: Page, params?: EditorParams) => void
 function App() {
   const [page, setPage] = useState<Page>('scan')
   const [editorParams, setEditorParams] = useState<EditorParams>({})
-  const [selectedModel, setSelectedModel] = useState<SelectedModel>(getDefaultModel)
+  const [selectedModel, setSelectedModel] = useState<SelectedModel>(loadSavedModel)
+
+  function handleModelChange(model: SelectedModel) {
+    saveModel(model)
+    setSelectedModel(model)
+  }
   const [username, setUsername] = useState<string>(() => localStorage.getItem(USERNAME_KEY) ?? '')
   const { books, addBook, updateBook, deleteBook } = useBookHistory()
 
@@ -51,7 +71,7 @@ function App() {
             key="scan"
             navigate={navigate}
             selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
+            onModelChange={handleModelChange}
             username={username}
           />
         )}
