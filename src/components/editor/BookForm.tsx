@@ -121,7 +121,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
       illustrator: form.illustrator.trim(),
       publisher: form.publisher.trim(),
       publishedYear: form.publishedYear.trim(),
-      isbn: form.isbn.trim(),
+      isbn: form.isbn.trim().replace(/-/g, ''),
       category: form.category.trim(),
       genre: form.genre.trim(),
       collection: form.collection as CollectionCode | '',
