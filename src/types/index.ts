@@ -1,6 +1,6 @@
 export type CollectionCode =
   | 'ART' | 'BIO' | 'CHI' | 'COLL' | 'CRI'
-  | 'FIC' | 'HYST' | 'MYTH' | 'MISC' | 'NFIC'
+  | 'FIC' | 'HIST' | 'MYTH' | 'MISC' | 'NFIC'
   | 'PLAY' | 'POET' | 'REF' | 'SCIFI' | 'SPI'
   | 'SPO' | 'TRVL' | 'COOK' | 'MUSC' | 'ESSY'
 
