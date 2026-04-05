@@ -1,10 +1,46 @@
 import type { BookMetadata } from '@/types'
 
 const HEADERS = [
-  'Title', 'Sub Title', 'Other Title', 'Author', 'Second Author', 'Editor',
-  'Translator', 'Illustrator', 'Publisher', 'Published Year', 'ISBN',
-  'Category', 'Genre', 'Collection', 'Item Type', 'Page Count', 'Language',
-  'Edition', 'Publication Place', 'Scan Date', 'Summary',
+  'ISBN',
+  'Language',
+  'Author',
+  'Title',
+  'Sub Title',
+  'Other Title',
+  'Edition',
+  'Publication Place',
+  'Publisher',
+  'Published Year',
+  'Page Count',
+  'other physical details',
+  'Series',
+  'Note Area',
+  'Category',
+  'Genre',
+  'Subject 3',
+  'Subject 4',
+  'Subject 5',
+  'Second Author',
+  'Third Column',
+  'Editor',
+  'Compiler',
+  'Translator',
+  'Illustrator',
+  'Item Type',
+  'Status',
+  'Collection',
+  'Home Branch',
+  'Holding Branch',
+  'Shelving Location',
+  'Scan Date',
+  'Source of Aquisition',
+  'Cost, normal purchase price',
+  'Call No',
+  'BarCode',
+  'Public Note',
+  'Second Copy',
+  'Third Copy',
+  'Fourth Copy',
 ]
 
 function escape(val: string): string {
@@ -14,29 +50,50 @@ function escape(val: string): string {
   return val
 }
 
+const EMPTY = ''
+
 function toRow(book: BookMetadata): string[] {
   return [
+    book.isbn,
+    book.language,
+    book.author,
     book.title,
     book.subTitle,
     book.otherTitle,
-    book.author,
-    book.secondAuthor,
-    book.editor,
-    book.translator,
-    book.illustrator,
-    book.publisher,
-    book.publishedYear,
-    book.isbn,
-    book.category,
-    book.genre,
-    book.collection,
-    book.itemType,
-    book.pageCount,
-    book.language,
     book.edition,
     book.publicationPlace,
+    book.publisher,
+    book.publishedYear,
+    book.pageCount,
+    EMPTY,               // other physical details
+    EMPTY,               // Series
+    EMPTY,               // Note Area
+    book.category,
+    book.genre,
+    EMPTY,               // Subject 3
+    EMPTY,               // Subject 4
+    EMPTY,               // Subject 5
+    book.secondAuthor,
+    EMPTY,               // Third Column
+    book.editor,
+    EMPTY,               // Compiler
+    book.translator,
+    book.illustrator,
+    book.itemType,
+    EMPTY,               // Status
+    book.collection,
+    EMPTY,               // Home Branch
+    EMPTY,               // Holding Branch
+    EMPTY,               // Shelving Location
     book.scanDate,
-    book.summary,
+    EMPTY,               // Source of Aquisition
+    EMPTY,               // Cost, normal purchase price
+    EMPTY,               // Call No
+    EMPTY,               // BarCode
+    EMPTY,               // Public Note
+    EMPTY,               // Second Copy
+    EMPTY,               // Third Copy
+    EMPTY,               // Fourth Copy
   ]
 }
 
