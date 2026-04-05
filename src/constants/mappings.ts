@@ -7,7 +7,7 @@ export const COLLECTION_LABELS: Record<CollectionCode, string> = {
   COLL: 'Collection',
   CRI: 'Literary Criticism',
   FIC: 'Fiction',
-  HYST: 'History',
+  HIST: 'History',
   MYTH: 'Mythology',
   MISC: 'Miscellaneous',
   NFIC: 'Non-Fiction',
