@@ -29,7 +29,7 @@ export function parseAIResponse(raw: string): Partial<BookMetadata> {
     illustrator: str(parsed['illustrator']),
     publisher: str(parsed['publisher']),
     publishedYear: str(parsed['publishedYear']),
-    isbn: str(parsed['isbn']),
+    isbn: str(parsed['isbn']).replace(/-/g, ''),
     category: str(parsed['category']),
     genre: str(parsed['genre']),
     collection: LABEL_TO_COLLECTION[collectionLabel] ?? '',
