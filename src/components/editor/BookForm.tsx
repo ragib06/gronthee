@@ -94,7 +94,8 @@ function validate(form: FormState): Errors {
 }
 
 export default function BookForm({ initialValues, scanDate, confidence = {}, onSave, onCancel }: BookFormProps) {
-  function conf(field: string): 'very low' | 'low' | 'high' | undefined {
+  function conf(field: keyof FormState): 'very low' | 'low' | 'high' | undefined {
+    if (form[field] === 'N/A') return undefined
     const c = confidence[field]
     return c === 'very low' || c === 'low' || c === 'high' ? c : undefined
   }
