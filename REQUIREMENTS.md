@@ -13,7 +13,7 @@ Gronthee is a web-based application designed to automate the process of catalogi
     - **Title**: Primary title of the book.
     - **Sub Title**: Secondary title or subtitle.
     - **Other Title**: Additional titles (defaults to empty).
-    - **Author**: Primary author's name.
+    - **Author**: Primary author's name. If the AI returns no value, defaults to `N/A`.
     - **Second Author**: Secondary author(s), if applicable.
     - **Editor**: Editor's name (common for collections).
     - **Translator**: Name of the translator for translated works.

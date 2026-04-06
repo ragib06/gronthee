@@ -22,7 +22,7 @@ export function parseAIResponse(raw: string): Partial<BookMetadata> {
     title: str(parsed['title']),
     subTitle: str(parsed['subTitle']),
     otherTitle: str(parsed['otherTitle']),
-    author: str(parsed['author']),
+    author: str(parsed['author']) || 'N/A',
     secondAuthor: str(parsed['secondAuthor']),
     editor: str(parsed['editor']),
     translator: str(parsed['translator']),
