@@ -18,10 +18,13 @@ export function parseAIResponse(raw: string): Partial<BookMetadata> {
   const collectionLabel = str(parsed['collection'])
   const itemTypeLabel = str(parsed['itemType'])
 
+  const title = str(parsed['title'])
+  const otherTitle = str(parsed['otherTitle'])
+
   return {
-    title: str(parsed['title']),
+    title,
     subTitle: str(parsed['subTitle']),
-    otherTitle: str(parsed['otherTitle']),
+    otherTitle: otherTitle.toLowerCase() === title.toLowerCase() ? '' : otherTitle,
     author: str(parsed['author']) || 'N/A',
     secondAuthor: str(parsed['secondAuthor']),
     editor: str(parsed['editor']),
