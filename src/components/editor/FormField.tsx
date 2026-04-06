@@ -9,6 +9,7 @@ interface FormFieldProps {
   placeholder?: string
   required?: boolean
   error?: string
+  confidence?: 'very low' | 'low' | 'high'
 }
 
 const inputClass =
@@ -28,10 +29,15 @@ export default function FormField({
   placeholder,
   required,
   error,
+  confidence,
 }: FormFieldProps) {
   const isEmpty = required && !value.trim()
   const borderClass = error
     ? 'border-red-400 focus:ring-red-400'
+    : confidence === 'very low'
+    ? 'border-orange-400 focus:ring-orange-400'
+    : confidence === 'low'
+    ? 'border-amber-400 focus:ring-amber-400'
     : 'border-gray-200 focus:ring-indigo-500'
   const bgClass = isEmpty ? 'bg-amber-50' : 'bg-white'
 
@@ -74,6 +80,12 @@ export default function FormField({
         />
       )}
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      {!error && confidence === 'very low' && (
+        <p className="mt-1 text-xs text-orange-500">confidence: very low</p>
+      )}
+      {!error && confidence === 'low' && (
+        <p className="mt-1 text-xs text-amber-500">confidence: low</p>
+      )}
     </div>
   )
 }

@@ -326,7 +326,7 @@ export interface AIRawResponse {
 export type RawBookMetadata = Omit<BookMetadata, 'id' | 'scanDate'>;
 
 export interface ModelDefinition {
-  id: string;           // e.g. "claude-opus-4-5"
+  id: string;           // e.g. "claude-opus-4-6"
   label: string;        // e.g. "Claude Opus 4.5"
 }
 
@@ -469,14 +469,14 @@ import type { AIConfig } from '@/types';
 
 export const AI_CONFIG: AIConfig = {
   defaultProvider: 'anthropic',
-  defaultModelId: 'claude-opus-4-5',
+  defaultModelId: 'claude-opus-4-6',
   providers: [
     {
       provider: 'anthropic',
       label: 'Anthropic',
       apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
       models: [
-        { id: 'claude-opus-4-5', label: 'Claude Opus 4.5' },
+        { id: 'claude-opus-4-6', label: 'Claude Opus 4.5' },
         { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
         { id: 'claude-haiku-3-5', label: 'Claude Haiku 3.5' },
       ],

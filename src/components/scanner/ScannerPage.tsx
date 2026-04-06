@@ -36,7 +36,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
   const [images, setImages] = useState<string[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [pendingScan, setPendingScan] = useState<{ metadata: Partial<BookMetadata>; images: string[] } | null>(null)
+  const [pendingScan, setPendingScan] = useState<{ metadata: Partial<BookMetadata>; images: string[]; confidence: import('@/types').FieldConfidence } | null>(null)
 
   const handleFiles = useCallback(async (files: File[]) => {
     const dataUrls = await Promise.all(files.map(fileToDataUrl))
@@ -58,10 +58,10 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
     try {
       const compressed = await Promise.all(images.map(compressImageForApi))
       const base64Images = compressed.map(dataUrlToBase64Image)
-      const raw = await extractBookMetadata(base64Images, selectedModel)
+      const { metadata: raw, confidence } = await extractBookMetadata(base64Images, selectedModel)
       const prefs = loadPreferences()
       const withPrefs = applyPreferences(raw as Record<string, string>, prefs) as Partial<BookMetadata>
-      setPendingScan({ metadata: withPrefs, images })
+      setPendingScan({ metadata: withPrefs, images, confidence })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to scan book. Please try again.')
     } finally {
@@ -72,7 +72,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
   function handlePagesSubmit(pageCount: string) {
     if (!pendingScan) return
     const metadata = pageCount ? { ...pendingScan.metadata, pageCount } : pendingScan.metadata
-    navigate('editor', { pendingMetadata: metadata, pendingImages: pendingScan.images })
+    navigate('editor', { pendingMetadata: metadata, pendingImages: pendingScan.images, pendingConfidence: pendingScan.confidence })
     setPendingScan(null)
   }
 

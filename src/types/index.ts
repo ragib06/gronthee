@@ -85,6 +85,9 @@ export interface SelectedModel {
   apiKey: string
 }
 
+export type ConfidenceLevel = 'very low' | 'low' | 'high'
+export type FieldConfidence = Record<string, ConfidenceLevel>
+
 export interface UserPreferences {
   corrections: Record<string, Record<string, string>>
 }

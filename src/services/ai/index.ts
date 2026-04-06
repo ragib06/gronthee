@@ -1,13 +1,14 @@
-import type { Base64Image, BookMetadata, SelectedModel } from '@/types'
+import type { Base64Image, SelectedModel } from '@/types'
 import { extractWithAnthropic } from './anthropic'
 import { extractWithOpenAI } from './openai'
 import { extractWithGemini } from './gemini'
 import { extractWithOpenRouter } from './openrouter'
+import type { ParsedAIResponse } from './parse'
 
 export async function extractBookMetadata(
   images: Base64Image[],
   model: SelectedModel
-): Promise<Partial<BookMetadata>> {
+): Promise<ParsedAIResponse> {
   switch (model.provider) {
     case 'anthropic':
       return extractWithAnthropic(images, model.modelId, model.apiKey)

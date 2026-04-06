@@ -1,13 +1,13 @@
 import OpenAI from 'openai'
-import type { Base64Image, BookMetadata } from '@/types'
+import type { Base64Image } from '@/types'
 import { PROMPT } from './prompt'
-import { parseAIResponse } from './parse'
+import { parseAIResponse, type ParsedAIResponse } from './parse'
 
 export async function extractWithOpenAI(
   images: Base64Image[],
   modelId: string,
   apiKey: string
-): Promise<Partial<BookMetadata>> {
+): Promise<ParsedAIResponse> {
   const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true })
 
   const imageParts: OpenAI.ChatCompletionContentPartImage[] = images.map(img => ({

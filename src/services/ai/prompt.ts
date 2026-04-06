@@ -23,6 +23,10 @@ CRITICAL RULES:
 10. For "summary", write 1-2 sentences in English describing the book's subject matter.
 11. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "". Only consider edition or publication dates — ignore impression numbers, print run numbers, and reprint dates entirely. If multiple editions are mentioned, always return the highest (latest) one.
 12. For "publicationPlace", return the city name only — do not include country or state (e.g., "New York", not "New York, USA").
+14. For every field, include a corresponding entry in the "confidence" object using one of these exact values:
+    - "high": the value is clearly and unambiguously visible in the images
+    - "low": the value is present but partially obscured, inferred, or uncertain
+    - "very low": the value is not visible and is mostly guessed or unavailable
 
 Return this exact JSON structure:
 {
@@ -46,5 +50,28 @@ Return this exact JSON structure:
   "language": "",
   "edition": "",
   "publicationPlace": "",
-  "summary": ""
+  "summary": "",
+  "confidence": {
+    "title": "high",
+    "subTitle": "high",
+    "otherTitle": "high",
+    "author": "high",
+    "secondAuthor": "high",
+    "editor": "high",
+    "translator": "high",
+    "illustrator": "high",
+    "publisher": "high",
+    "publishedYear": "high",
+    "publishedYearBengali": "high",
+    "isbn": "high",
+    "category": "high",
+    "genre": "high",
+    "collection": "high",
+    "itemType": "high",
+    "pageCount": "high",
+    "language": "high",
+    "edition": "high",
+    "publicationPlace": "high",
+    "summary": "high"
+  }
 }`

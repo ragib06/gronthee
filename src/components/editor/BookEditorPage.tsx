@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { ChevronLeft, ImageOff, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata } from '@/types'
+import type { BookMetadata, FieldConfidence } from '@/types'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import BookForm from './BookForm'
 
@@ -11,6 +11,7 @@ interface BookEditorPageProps {
   book?: BookMetadata
   pendingMetadata?: Partial<BookMetadata>
   pendingImages: string[]
+  pendingConfidence?: FieldConfidence
   onAdd: (book: BookMetadata) => void
   onUpdate: (book: BookMetadata) => void
 }
@@ -20,6 +21,7 @@ export default function BookEditorPage({
   book,
   pendingMetadata,
   pendingImages,
+  pendingConfidence,
   onAdd,
   onUpdate,
 }: BookEditorPageProps) {
@@ -141,6 +143,7 @@ export default function BookEditorPage({
           <BookForm
             initialValues={initialValues}
             scanDate={scanDate}
+            confidence={isEdit ? undefined : pendingConfidence}
             onSave={handleSave}
             onCancel={handleCancel}
           />

@@ -1,13 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { Base64Image, BookMetadata } from '@/types'
+import type { Base64Image } from '@/types'
 import { PROMPT } from './prompt'
-import { parseAIResponse } from './parse'
+import { parseAIResponse, type ParsedAIResponse } from './parse'
 
 export async function extractWithGemini(
   images: Base64Image[],
   modelId: string,
   apiKey: string
-): Promise<Partial<BookMetadata>> {
+): Promise<ParsedAIResponse> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({ model: modelId })
 

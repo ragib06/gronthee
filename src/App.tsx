@@ -7,7 +7,7 @@ import HistoryPage from '@/components/history/HistoryPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
 import { useBookHistory } from '@/hooks/useBookHistory'
 import { getDefaultModel, resolveModel } from '@/config/ai-config'
-import type { BookMetadata, SelectedModel } from '@/types'
+import type { BookMetadata, FieldConfidence, SelectedModel } from '@/types'
 
 const USERNAME_KEY = 'gronthee-username'
 const MODEL_KEY = 'gronthee:selectedModel'
@@ -32,6 +32,7 @@ export interface EditorParams {
   book?: BookMetadata
   pendingMetadata?: Partial<BookMetadata>
   pendingImages?: string[]
+  pendingConfidence?: FieldConfidence
   flashMessage?: string
 }
 
@@ -82,6 +83,7 @@ function App() {
             book={editorParams.book}
             pendingMetadata={editorParams.pendingMetadata}
             pendingImages={editorParams.pendingImages ?? []}
+            pendingConfidence={editorParams.pendingConfidence}
             onAdd={addBook}
             onUpdate={updateBook}
           />

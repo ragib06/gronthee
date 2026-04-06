@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AlertCircle, Save } from 'lucide-react'
-import type { BookMetadata, CollectionCode, ItemTypeCode } from '@/types'
+import type { BookMetadata, CollectionCode, FieldConfidence, ItemTypeCode } from '@/types'
 import { COLLECTION_LABELS, ITEM_TYPE_LABELS } from '@/constants/mappings'
 import FormField from './FormField'
 import ScanDateField from './ScanDateField'
@@ -8,6 +8,7 @@ import ScanDateField from './ScanDateField'
 interface BookFormProps {
   initialValues: Partial<BookMetadata>
   scanDate: string
+  confidence?: FieldConfidence
   onSave: (data: Omit<BookMetadata, 'id'>) => void
   onCancel: () => void
 }
@@ -92,7 +93,11 @@ function validate(form: FormState): Errors {
   return errors
 }
 
-export default function BookForm({ initialValues, scanDate, onSave, onCancel }: BookFormProps) {
+export default function BookForm({ initialValues, scanDate, confidence = {}, onSave, onCancel }: BookFormProps) {
+  function conf(field: string): 'very low' | 'low' | 'high' | undefined {
+    const c = confidence[field]
+    return c === 'very low' || c === 'low' || c === 'high' ? c : undefined
+  }
   const [form, setForm] = useState<FormState>(() => initForm(initialValues))
   const [errors, setErrors] = useState<Errors>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -145,46 +150,46 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
       <h3 className={sectionHeading}>Title Information</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <FormField id="title" label="Title" value={form.title} onChange={set('title')} placeholder="Book title" required error={errors.title} />
+          <FormField id="title" label="Title" value={form.title} onChange={set('title')} placeholder="Book title" required error={errors.title} confidence={conf('title')} />
         </div>
-        <FormField id="subTitle" label="Subtitle" value={form.subTitle} onChange={set('subTitle')} placeholder="Subtitle" />
-        <FormField id="otherTitle" label="Other Title" value={form.otherTitle} onChange={set('otherTitle')} placeholder="Alternative title" />
+        <FormField id="subTitle" label="Subtitle" value={form.subTitle} onChange={set('subTitle')} placeholder="Subtitle" confidence={conf('subTitle')} />
+        <FormField id="otherTitle" label="Other Title" value={form.otherTitle} onChange={set('otherTitle')} placeholder="Alternative title" confidence={conf('otherTitle')} />
       </div>
 
       {/* People */}
       <h3 className={sectionHeading}>People</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField id="author" label="Author" value={form.author} onChange={set('author')} placeholder="Primary author" required error={errors.author} />
-        <FormField id="secondAuthor" label="Second Author" value={form.secondAuthor} onChange={set('secondAuthor')} placeholder="Second author" />
-        <FormField id="editor" label="Editor" value={form.editor} onChange={set('editor')} placeholder="Editor" />
-        <FormField id="translator" label="Translator" value={form.translator} onChange={set('translator')} placeholder="Translator" />
-        <FormField id="illustrator" label="Illustrator" value={form.illustrator} onChange={set('illustrator')} placeholder="Illustrator" />
+        <FormField id="author" label="Author" value={form.author} onChange={set('author')} placeholder="Primary author" required error={errors.author} confidence={conf('author')} />
+        <FormField id="secondAuthor" label="Second Author" value={form.secondAuthor} onChange={set('secondAuthor')} placeholder="Second author" confidence={conf('secondAuthor')} />
+        <FormField id="editor" label="Editor" value={form.editor} onChange={set('editor')} placeholder="Editor" confidence={conf('editor')} />
+        <FormField id="translator" label="Translator" value={form.translator} onChange={set('translator')} placeholder="Translator" confidence={conf('translator')} />
+        <FormField id="illustrator" label="Illustrator" value={form.illustrator} onChange={set('illustrator')} placeholder="Illustrator" confidence={conf('illustrator')} />
       </div>
 
       {/* Publication Details */}
       <h3 className={sectionHeading}>Publication Details</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <FormField id="publisher" label="Publisher" value={form.publisher} onChange={set('publisher')} placeholder="Publisher name" required error={errors.publisher} />
+        <FormField id="publisher" label="Publisher" value={form.publisher} onChange={set('publisher')} placeholder="Publisher name" required error={errors.publisher} confidence={conf('publisher')} />
         <div>
-          <FormField id="publishedYear" label="Year" value={form.publishedYear} onChange={set('publishedYear')} placeholder="YYYY" required error={errors.publishedYear} />
+          <FormField id="publishedYear" label="Year" value={form.publishedYear} onChange={set('publishedYear')} placeholder="YYYY" required error={errors.publishedYear} confidence={conf('publishedYear')} />
           {form.publishedYearBengali && (
             <p className="mt-1 text-xs text-indigo-500">
               Bengali calendar: {form.publishedYearBengali} BS
             </p>
           )}
         </div>
-        <FormField id="publicationPlace" label="Publication Place" value={form.publicationPlace} onChange={set('publicationPlace')} placeholder="City, Country" required error={errors.publicationPlace} />
-        <FormField id="edition" label="Edition" value={form.edition} onChange={set('edition')} placeholder="e.g. 2nd" required error={errors.edition} />
-        <FormField id="isbn" label="ISBN" value={form.isbn} onChange={v => set('isbn')(v.replace(/\s/g, ''))} placeholder="ISBN" required error={errors.isbn} />
+        <FormField id="publicationPlace" label="Publication Place" value={form.publicationPlace} onChange={set('publicationPlace')} placeholder="City, Country" required error={errors.publicationPlace} confidence={conf('publicationPlace')} />
+        <FormField id="edition" label="Edition" value={form.edition} onChange={set('edition')} placeholder="e.g. 2nd" required error={errors.edition} confidence={conf('edition')} />
+        <FormField id="isbn" label="ISBN" value={form.isbn} onChange={v => set('isbn')(v.replace(/\s/g, ''))} placeholder="ISBN" required error={errors.isbn} confidence={conf('isbn')} />
         <FormField id="pageCount" label="Pages" value={form.pageCount} onChange={set('pageCount')} placeholder="Number of pages" required error={errors.pageCount} />
-        <FormField id="language" label="Language" value={form.language} onChange={set('language')} placeholder="ISO 639-1 code" required error={errors.language} />
+        <FormField id="language" label="Language" value={form.language} onChange={set('language')} placeholder="ISO 639-1 code" required error={errors.language} confidence={conf('language')} />
       </div>
 
       {/* Classification */}
       <h3 className={sectionHeading}>Classification</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField id="category" label="Category" value={form.category} onChange={set('category')} placeholder="Fiction or Non Fiction" required error={errors.category} />
-        <FormField id="genre" label="Genre" value={form.genre} onChange={set('genre')} placeholder="Genre" required error={errors.genre} />
+        <FormField id="category" label="Category" value={form.category} onChange={set('category')} placeholder="Fiction or Non Fiction" required error={errors.category} confidence={conf('category')} />
+        <FormField id="genre" label="Genre" value={form.genre} onChange={set('genre')} placeholder="Genre" required error={errors.genre} confidence={conf('genre')} />
         <FormField
           id="collection"
           label="Collection"
@@ -194,6 +199,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
           options={collectionOptions}
           required
           error={errors.collection}
+          confidence={conf('collection')}
         />
         <FormField
           id="itemType"
@@ -204,6 +210,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
           options={itemTypeOptions}
           required
           error={errors.itemType}
+          confidence={conf('itemType')}
         />
       </div>
 
@@ -211,7 +218,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
       <h3 className={sectionHeading}>Other</h3>
       <div className="space-y-4">
         <ScanDateField date={scanDate} />
-        <FormField id="summary" label="Summary" value={form.summary} onChange={set('summary')} type="textarea" placeholder="Brief summary of the book" required error={errors.summary} />
+        <FormField id="summary" label="Summary" value={form.summary} onChange={set('summary')} type="textarea" placeholder="Brief summary of the book" required error={errors.summary} confidence={conf('summary')} />
       </div>
 
       {/* Validation error summary */}
