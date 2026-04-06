@@ -391,7 +391,8 @@ CRITICAL RULES:
 4. The "language" field is the ISO 639-1 code of the book's ORIGINAL language in ALL CAPS
    (e.g., "EN", "BN", "FR", "AR") — this is the one field that is NOT translated.
 5. For "publishedYear" (Gregorian YYYY) and "publishedYearBengali" (Bengali era, e.g. "1407"):
-   convert between them using ±593. Fill both whenever at least one is determinable.
+   if multiple years appear (multiple editions), always pick the LATEST.
+   Convert between Gregorian and Bengali using ±593. Fill both whenever at least one is determinable.
 6. For "pageCount", return only a numeric string (e.g., "312") or "".
 7. For "collection", return one of these exact human-readable values or "":
    Art, Biography, Children, Collection, Literary Criticism, Fiction, History,
@@ -400,7 +401,7 @@ CRITICAL RULES:
 8. For "itemType", return one of these exact human-readable values or "":
    Book, Author Signed Book, Rare Book, Reference, Magazine
 9. For "summary", write 1-2 sentences in English describing the book's subject matter.
-10. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "".
+10. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "". If multiple editions are mentioned, return the highest (latest) one.
 11. For "publicationPlace", return the city name only — do not include country or state (e.g., "New York", not "New York, USA").
 
 Return this exact JSON structure:
