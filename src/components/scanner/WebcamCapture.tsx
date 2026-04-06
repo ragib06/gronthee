@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import Webcam from 'react-webcam'
 import { Camera, CameraOff, RefreshCw, ShieldOff } from 'lucide-react'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -52,10 +52,23 @@ const VIDEO_CONSTRAINTS = {
 
 export default function WebcamCapture({ onCapture, disabled }: WebcamCaptureProps) {
   const webcamRef = useRef<Webcam>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const [cameraState, setCameraState] = useState<CameraState>(
     window.isSecureContext ? 'loading' : 'insecure'
   )
   const [retryKey, setRetryKey] = useState(0)
+
+  useEffect(() => {
+    if (cameraState === 'ready') {
+      const id = setTimeout(() => {
+        if (!wrapperRef.current) return
+        const rect = wrapperRef.current.getBoundingClientRect()
+        const target = window.scrollY + rect.top - 60
+        window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+      }, 300)
+      return () => clearTimeout(id)
+    }
+  }, [cameraState])
 
   const capture = useCallback(() => {
     const screenshot = webcamRef.current?.getScreenshot()
@@ -92,17 +105,17 @@ export default function WebcamCapture({ onCapture, disabled }: WebcamCaptureProp
     : null
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div ref={wrapperRef} className="flex flex-col items-center gap-4">
       {/* Always mounted (when secure) so the browser triggers the permission prompt.
           Hidden via CSS while not ready to avoid showing a blank video element. */}
       {window.isSecureContext && (
-        <div className={`w-full rounded-xl overflow-hidden border border-gray-200 bg-black ${cameraState === 'ready' ? '' : 'hidden'}`}>
+        <div className={`w-fit mx-auto rounded-xl overflow-hidden border border-gray-200 ${cameraState === 'ready' ? '' : 'hidden'}`}>
           <Webcam
             key={retryKey}
             ref={webcamRef}
             screenshotFormat="image/jpeg"
             videoConstraints={VIDEO_CONSTRAINTS}
-            className="w-full"
+            className="max-h-[52vh] w-auto mx-auto block"
             onUserMedia={handleUserMedia}
             onUserMediaError={handleUserMediaError}
           />

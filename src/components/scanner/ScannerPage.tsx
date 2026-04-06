@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { motion } from 'motion/react'
 import { ScanLine } from 'lucide-react'
 import type { NavigateFn } from '@/App'
@@ -32,6 +32,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 export default function ScannerPage({ navigate, selectedModel, onModelChange, username }: ScannerPageProps) {
   const [tab, setTab] = useState<'upload' | 'webcam'>('upload')
+  const inputAreaRef = useRef<HTMLDivElement>(null)
   const [images, setImages] = useState<string[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,6 +82,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.2 }}
+      className={tab === 'webcam' ? 'pb-[50vh]' : undefined}
     >
       {pendingScan && <PagesDialog onSubmit={handlePagesSubmit} />}
 
@@ -117,7 +119,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
       </div>
 
       {/* Input Area */}
-      <div className="relative bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+      <div ref={inputAreaRef} className="relative bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
         {tab === 'upload' ? (
           <DropZone onFiles={handleFiles} disabled={images.length >= 4} />
         ) : (

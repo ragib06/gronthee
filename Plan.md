@@ -42,7 +42,7 @@ gronthee/
 │   │   ├── scanner/
 │   │   │   ├── ScannerPage.tsx       # Top-level scan page
 │   │   │   ├── DropZone.tsx          # react-dropzone wrapper
-│   │   │   ├── WebcamCapture.tsx     # react-webcam wrapper + capture button
+│   │   │   ├── WebcamCapture.tsx     # react-webcam wrapper + capture button; auto-scrolls feed into view on ready (window.scrollTo, offset -60); max-h-[52vh] w-auto feed, w-fit container
 │   │   │   ├── ImagePreview.tsx      # Thumbnail grid for selected images
 │   │   │   └── ModelSelector.tsx     # Provider + model dropdown
 │   │   │
