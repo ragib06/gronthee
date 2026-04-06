@@ -33,7 +33,7 @@ export function parseAIResponse(raw: string): Partial<BookMetadata> {
     publisher: str(parsed['publisher']),
     publishedYear: str(parsed['publishedYear']),
     publishedYearBengali: str(parsed['publishedYearBengali']),
-    isbn: str(parsed['isbn']).replace(/-/g, '') || 'N/A',
+    isbn: str(parsed['isbn']).replace(/[\s-]/g, '') || 'N/A',
     category: str(parsed['category']),
     genre: str(parsed['genre']),
     collection: LABEL_TO_COLLECTION[collectionLabel] ?? '',
