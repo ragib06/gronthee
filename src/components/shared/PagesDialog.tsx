@@ -8,9 +8,27 @@ interface PagesDialogProps {
 export default function PagesDialog({ onSubmit }: PagesDialogProps) {
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const [viewport, setViewport] = useState<{ height: number; offsetTop: number } | null>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    function update() {
+      setViewport({ height: vv!.height, offsetTop: vv!.offsetTop })
+    }
+
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
   }, [])
 
   function handleSubmit(e: React.FormEvent) {
@@ -18,9 +36,14 @@ export default function PagesDialog({ onSubmit }: PagesDialogProps) {
     onSubmit(value.trim())
   }
 
+  const overlayStyle = viewport
+    ? { top: viewport.offsetTop, height: viewport.height }
+    : undefined
+
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      className="fixed inset-x-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      style={overlayStyle}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >

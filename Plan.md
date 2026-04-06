@@ -64,7 +64,7 @@ gronthee/
 │   │       ├── ConfirmDialog.tsx
 │   │       ├── ExportDialog.tsx
 │   │       ├── UsernameDialog.tsx        # First-launch username prompt (whitespace stripped from input)
-│   │       ├── PagesDialog.tsx           # Post-scan popup to enter page count (skippable)
+│   │       ├── PagesDialog.tsx           # Pre-scan popup to enter page count (skippable); uses visualViewport API to avoid keyboard overlap on mobile
 │   │       └── ResetDialog.tsx           # Destructive reset confirmation
 │   │
 │   └── utils/
@@ -179,7 +179,7 @@ gronthee/
 4. Write `src/utils/imageToBase64.ts` — converts `File` objects to base64 strings
 5. Write the AI extraction prompt (see Section 5)
 6. Write `src/utils/applyPreferences.ts` — applies stored `{original → corrected}` maps to raw AI JSON
-7. Wire scan flow in `ScannerPage`: collect images → call dispatcher → show loading → receive metadata → show `PagesDialog` (skippable) → merge page count → navigate to `BookEditorPage` pre-filled
+7. Wire scan flow in `ScannerPage`: collect images → click Scan Book → show `PagesDialog` (skippable, pre-AI) → user submits page count → show loading → call dispatcher → receive metadata → merge page count → navigate to `BookEditorPage` pre-filled
 8. Implement error handling: API errors, malformed JSON, rate limits
 
 **Provider adapter contract** — each adapter must export:

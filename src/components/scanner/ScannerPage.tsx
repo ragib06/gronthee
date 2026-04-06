@@ -36,7 +36,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
   const [images, setImages] = useState<string[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [pendingScan, setPendingScan] = useState<{ metadata: Partial<BookMetadata>; images: string[]; confidence: import('@/types').FieldConfidence } | null>(null)
+  const [showPagesDialog, setShowPagesDialog] = useState(false)
 
   const handleFiles = useCallback(async (files: File[]) => {
     const dataUrls = await Promise.all(files.map(fileToDataUrl))
@@ -51,8 +51,13 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
     setImages(prev => prev.filter((_, i) => i !== index))
   }, [])
 
-  async function handleScan() {
+  function handleScan() {
     if (images.length === 0 || isScanning) return
+    setShowPagesDialog(true)
+  }
+
+  async function handlePagesSubmit(pageCount: string) {
+    setShowPagesDialog(false)
     setIsScanning(true)
     setError(null)
     try {
@@ -61,19 +66,13 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
       const { metadata: raw, confidence } = await extractBookMetadata(base64Images, selectedModel)
       const prefs = loadPreferences()
       const withPrefs = applyPreferences(raw as Record<string, string>, prefs) as Partial<BookMetadata>
-      setPendingScan({ metadata: withPrefs, images, confidence })
+      const metadata = pageCount ? { ...withPrefs, pageCount } : withPrefs
+      navigate('editor', { pendingMetadata: metadata, pendingImages: images, pendingConfidence: confidence })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to scan book. Please try again.')
     } finally {
       setIsScanning(false)
     }
-  }
-
-  function handlePagesSubmit(pageCount: string) {
-    if (!pendingScan) return
-    const metadata = pageCount ? { ...pendingScan.metadata, pageCount } : pendingScan.metadata
-    navigate('editor', { pendingMetadata: metadata, pendingImages: pendingScan.images, pendingConfidence: pendingScan.confidence })
-    setPendingScan(null)
   }
 
   return (
@@ -84,7 +83,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
       transition={{ duration: 0.2 }}
       className={tab === 'webcam' ? 'pb-[50vh]' : undefined}
     >
-      {pendingScan && <PagesDialog onSubmit={handlePagesSubmit} />}
+      {showPagesDialog && <PagesDialog onSubmit={handlePagesSubmit} />}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
