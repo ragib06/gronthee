@@ -23,6 +23,7 @@ type FormState = {
   illustrator: string
   publisher: string
   publishedYear: string
+  publishedYearBengali: string
   isbn: string
   category: string
   genre: string
@@ -47,6 +48,7 @@ function initForm(initial: Partial<BookMetadata>): FormState {
     illustrator: initial.illustrator ?? '',
     publisher: initial.publisher ?? '',
     publishedYear: initial.publishedYear ?? '',
+    publishedYearBengali: initial.publishedYearBengali ?? '',
     isbn: initial.isbn ?? '',
     category: initial.category ?? '',
     genre: initial.genre ?? '',
@@ -121,6 +123,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
       illustrator: form.illustrator.trim(),
       publisher: form.publisher.trim(),
       publishedYear: form.publishedYear.trim(),
+      publishedYearBengali: form.publishedYearBengali.trim(),
       isbn: form.isbn.trim().replace(/-/g, ''),
       category: form.category.trim(),
       genre: form.genre.trim(),
@@ -162,7 +165,14 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
       <h3 className={sectionHeading}>Publication Details</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <FormField id="publisher" label="Publisher" value={form.publisher} onChange={set('publisher')} placeholder="Publisher name" required error={errors.publisher} />
-        <FormField id="publishedYear" label="Year" value={form.publishedYear} onChange={set('publishedYear')} placeholder="YYYY" required error={errors.publishedYear} />
+        <div>
+          <FormField id="publishedYear" label="Year" value={form.publishedYear} onChange={set('publishedYear')} placeholder="YYYY" required error={errors.publishedYear} />
+          {form.publishedYearBengali && (
+            <p className="mt-1 text-xs text-indigo-500">
+              Bengali calendar: {form.publishedYearBengali} BS
+            </p>
+          )}
+        </div>
         <FormField id="publicationPlace" label="Publication Place" value={form.publicationPlace} onChange={set('publicationPlace')} placeholder="City, Country" required error={errors.publicationPlace} />
         <FormField id="edition" label="Edition" value={form.edition} onChange={set('edition')} placeholder="e.g. 2nd" required error={errors.edition} />
         <FormField id="isbn" label="ISBN" value={form.isbn} onChange={set('isbn')} placeholder="ISBN" required error={errors.isbn} />

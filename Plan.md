@@ -281,7 +281,8 @@ export interface BookMetadata {
   translator: string;
   illustrator: string;
   publisher: string;
-  publishedYear: string;       // YYYY
+  publishedYear: string;       // YYYY (Gregorian)
+  publishedYearBengali: string; // Bengali era year e.g. "1407", derived if not on book
   isbn: string;
   category: string;
   genre: string;
@@ -389,7 +390,8 @@ CRITICAL RULES:
 3. If a field cannot be determined from the images, use an empty string "".
 4. The "language" field is the ISO 639-1 code of the book's ORIGINAL language in ALL CAPS
    (e.g., "EN", "BN", "FR", "AR") — this is the one field that is NOT translated.
-5. For "publishedYear", return only a 4-digit year string (e.g., "2019") or "".
+5. For "publishedYear" (Gregorian YYYY) and "publishedYearBengali" (Bengali era, e.g. "1407"):
+   convert between them using ±593. Fill both whenever at least one is determinable.
 6. For "pageCount", return only a numeric string (e.g., "312") or "".
 7. For "collection", return one of these exact human-readable values or "":
    Art, Biography, Children, Collection, Literary Criticism, Fiction, History,
@@ -413,6 +415,7 @@ Return this exact JSON structure:
   "illustrator": "",
   "publisher": "",
   "publishedYear": "",
+  "publishedYearBengali": "",
   "isbn": "",
   "category": "",
   "genre": "",

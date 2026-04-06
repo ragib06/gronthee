@@ -19,7 +19,8 @@ export interface BookMetadata {
   translator: string
   illustrator: string
   publisher: string
-  publishedYear: string        // YYYY
+  publishedYear: string        // YYYY (Gregorian)
+  publishedYearBengali: string // Bengali era year, e.g. "1407" — present when book shows it or was converted
   isbn: string
   category: string
   genre: string
@@ -45,6 +46,7 @@ export interface AIRawResponse {
   illustrator: string
   publisher: string
   publishedYear: string
+  publishedYearBengali: string
   isbn: string
   category: string
   genre: string

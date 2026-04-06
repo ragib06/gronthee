@@ -6,7 +6,13 @@ CRITICAL RULES:
 2. Return ONLY a raw JSON object — no markdown fences, no commentary, no explanation.
 3. If a field cannot be determined from the images, use an empty string "".
 4. The "language" field is the ISO 639-1 code of the book's ORIGINAL language in ALL CAPS (e.g., "EN", "BN", "FR", "AR") — this is the one field that is NOT translated.
-5. For "publishedYear", return only a 4-digit year string (e.g., "2019") or "".
+5. For "publishedYear" and "publishedYearBengali":
+   - "publishedYear" must always be a 4-digit Gregorian year string (e.g., "2019") or "".
+   - "publishedYearBengali" must be the Bengali era (Bangla Saal) year as a numeric string (e.g., "1407") or "".
+   - If the book shows only a Bengali year (e.g., "Boishakh 1407"), convert to Gregorian by adding 593 (1407 + 593 = 2000) and fill both fields.
+   - If the book shows only a Gregorian year, subtract 593 to derive the Bengali year and fill both fields.
+   - If both appear on the book, fill both directly.
+   - If neither can be determined, use "" for both.
 6. For "pageCount", return only a numeric string (e.g., "312") or "".
 7. For "category", return exactly "Fiction" or "Non Fiction" (nothing else).
 8. For "collection", return one of these exact human-readable values or "":
@@ -29,6 +35,7 @@ Return this exact JSON structure:
   "illustrator": "",
   "publisher": "",
   "publishedYear": "",
+  "publishedYearBengali": "",
   "isbn": "",
   "category": "",
   "genre": "",
