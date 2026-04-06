@@ -1,6 +1,6 @@
 {
-  "defaultProvider": "openrouter",
-  "defaultModelId": "qwen/qwen3.6-plus:free",
+  "defaultProvider": "anthropic",
+  "defaultModelId": "claude-opus-4-5",
   "providers": [
     {
       "provider": "anthropic",
