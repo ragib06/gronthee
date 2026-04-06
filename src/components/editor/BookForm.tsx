@@ -175,7 +175,7 @@ export default function BookForm({ initialValues, scanDate, onSave, onCancel }: 
         </div>
         <FormField id="publicationPlace" label="Publication Place" value={form.publicationPlace} onChange={set('publicationPlace')} placeholder="City, Country" required error={errors.publicationPlace} />
         <FormField id="edition" label="Edition" value={form.edition} onChange={set('edition')} placeholder="e.g. 2nd" required error={errors.edition} />
-        <FormField id="isbn" label="ISBN" value={form.isbn} onChange={set('isbn')} placeholder="ISBN" required error={errors.isbn} />
+        <FormField id="isbn" label="ISBN" value={form.isbn} onChange={v => set('isbn')(v.replace(/\s/g, ''))} placeholder="ISBN" required error={errors.isbn} />
         <FormField id="pageCount" label="Pages" value={form.pageCount} onChange={set('pageCount')} placeholder="Number of pages" required error={errors.pageCount} />
         <FormField id="language" label="Language" value={form.language} onChange={set('language')} placeholder="ISO 639-1 code" required error={errors.language} />
       </div>
