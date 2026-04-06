@@ -20,7 +20,7 @@ Gronthee is a web-based application designed to automate the process of catalogi
     - **Illustrator**: Name of the illustrator.
     - **Publisher**: Publishing house name.
     - **Published Year**: Year of publication in YYYY format.
-    - **ISBN**: International Standard Book Number. Dashes must be stripped on save (e.g. `978-3-16-148410-0` → `9783161484100`).
+    - **ISBN**: International Standard Book Number. Dashes must be stripped on save (e.g. `978-3-16-148410-0` → `9783161484100`). If the AI returns no value, defaults to `N/A`.
     - **Category**: High-level classification. Free-text field; AI is instructed to return "Fiction" or "Non Fiction", but the user may override with any value.
     - **Genre**: Specific genre (e.g., Poetry, Novel, Biography, Travel).
     - **Collection**: A coded field mapped to specific categories (see Mappings below).
