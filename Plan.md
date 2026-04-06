@@ -521,26 +521,24 @@ export function resolveModel(provider: string, modelId: string) {
 ```json
 {
   "corrections": {
-    "publisher": {
-      "Harper and Row": "Harper & Row"
-    },
     "author": {
-      "García Márquez, Gabriel": "Gabriel Garcia Marquez"
-    },
-    "collection": {
-      "NFIC": "FIC"
+      "Humayan Ahmed": "Humayun Ahmed"
     }
   }
 }
 ```
 
+Only the `author` field is tracked. Corrections for other fields are ignored.
+
 ### Apply on Scan (`src/utils/applyPreferences.ts`)
 
-After AI response is parsed and before the form is shown: for each field, check if `preferences.corrections[fieldName][rawValue]` exists; if so, replace with stored correction.
+After AI response is parsed and before the form is shown: check if `preferences.corrections['author'][rawAuthorValue]` exists; if so, replace with stored correction. Only the `author` field is applied.
 
 ### Record on Save (`src/hooks/useUserPreferences.ts`)
 
-At save time, compare each field's final form value against `originalAIOutput` (held in component state). For any field where `formValue !== originalValue && originalValue !== ''`, call `recordCorrection(fieldName, originalValue, formValue)`.
+At save time, compare the final `author` form value against the original AI-extracted value. Save the correction only if:
+1. Both values are non-empty and different
+2. `levenshtein(original, corrected) / original.length <= 0.3` (≤ 30% of characters changed)
 
 ---
 
