@@ -41,7 +41,7 @@ export function parseAIResponse(raw: string): Partial<BookMetadata> {
     pageCount: str(parsed['pageCount']),
     language: str(parsed['language']).toUpperCase(),
     edition: str(parsed['edition']),
-    publicationPlace: str(parsed['publicationPlace']),
+    publicationPlace: str(parsed['publicationPlace']).replace(/^calcutta$/i, 'Kolkata'),
     summary: str(parsed['summary']),
   }
 }

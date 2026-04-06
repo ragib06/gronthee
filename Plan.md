@@ -401,7 +401,7 @@ CRITICAL RULES:
 8. For "itemType", return one of these exact human-readable values or "":
    Book, Author Signed Book, Rare Book, Reference, Magazine
 9. For "summary", write 1-2 sentences in English describing the book's subject matter.
-10. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "". If multiple editions are mentioned, return the highest (latest) one.
+10. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "". Only consider edition/publication dates — ignore impression, print run, and reprint dates. If multiple editions, return the highest (latest) one.
 11. For "publicationPlace", return the city name only — do not include country or state (e.g., "New York", not "New York, USA").
 
 Return this exact JSON structure:

@@ -27,7 +27,7 @@ Gronthee is a web-based application designed to automate the process of catalogi
     - **Item Type**: A coded field representing the physical type of the item (see Mappings below).
     - **Page Count**: Total number of pages.
     - **Language**: ISO 639-1 language code in ALL CAPS (e.g., EN, BN, FR).
-    - **Edition**: Ordinal edition number (e.g., 1st, 2nd, 3rd). If multiple editions are mentioned in the images, always use the highest (latest) one.
+    - **Edition**: Ordinal edition number (e.g., 1st, 2nd, 3rd). Only edition or publication dates are considered — impression numbers, print run numbers, and reprint dates are ignored. If multiple editions are mentioned, always use the highest (latest) one.
     - **Publication Place**: City of publication only (no country or state).
     - **Scan Date**: Automatically generated current date in YYYY-MM-DD format (Non-editable).
     - **Summary**: A brief 1-2 sentence summary of the book.
