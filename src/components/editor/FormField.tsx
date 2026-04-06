@@ -29,9 +29,11 @@ export default function FormField({
   required,
   error,
 }: FormFieldProps) {
+  const isEmpty = required && !value.trim()
   const borderClass = error
     ? 'border-red-400 focus:ring-red-400'
     : 'border-gray-200 focus:ring-indigo-500'
+  const bgClass = isEmpty ? 'bg-amber-50' : 'bg-white'
 
   return (
     <div>
@@ -48,14 +50,14 @@ export default function FormField({
           onChange={e => onChange?.(e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className={`${inputClass} ${borderClass} resize-none`}
+          className={`${inputClass} ${borderClass} ${bgClass} resize-none`}
         />
       ) : type === 'select' ? (
         <select
           id={id}
           value={value}
           onChange={e => onChange?.(e.target.value)}
-          className={`${inputClass} ${borderClass}`}
+          className={`${inputClass} ${borderClass} ${bgClass}`}
         >
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -68,7 +70,7 @@ export default function FormField({
           value={value}
           onChange={e => onChange?.(e.target.value)}
           placeholder={placeholder}
-          className={`${inputClass} ${borderClass}`}
+          className={`${inputClass} ${borderClass} ${bgClass}`}
         />
       )}
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
