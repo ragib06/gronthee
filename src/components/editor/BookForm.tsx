@@ -73,6 +73,27 @@ const itemTypeOptions = [
   ...Object.entries(ITEM_TYPE_LABELS).map(([code, label]) => ({ value: code, label })),
 ]
 
+const categoryOptions = [
+  { value: '', label: 'Select category' },
+  { value: 'Fiction', label: 'Fiction' },
+  { value: 'Non-Fiction', label: 'Non-Fiction' },
+  { value: 'Miscellaneous', label: 'Miscellaneous' },
+]
+
+const genreOptions = [
+  { value: '', label: 'Select genre' },
+  'Agriculture', 'Analytical Essays', 'Art', 'Art History', 'Autobiography',
+  'Belles Letters', 'Bilingual', 'Biography', 'Children', 'Collected Works',
+  'Comedy', 'Cooking', 'Crime', 'Culture', 'Dictionary', 'Drama', 'Education',
+  'Essay', 'Fiction', 'Historical Fiction', 'History', 'Indian Magazine',
+  'Indian Philosophy', 'Islamic History', 'Letters', 'Literary Criticism',
+  'Lyrics', 'Magazine', 'Math', 'Memoir', 'Miscellaneous', 'Muktijuddha',
+  'Mythology', 'Nature', 'Non-Fiction', 'Novel', 'Novella', 'Partitition',
+  'Philosophy', 'Play', 'Poetry', 'Reference', 'Religion', 'Sanskrit', 'Science',
+  'Science Fiction', 'Short Stories', 'Song', 'Spirituality', 'Story', 'Tagore',
+  'Thriller', 'Translation', 'Travel', 'Travelogue', 'Workbook',
+].map(v => typeof v === 'string' ? { value: v, label: v } : v)
+
 const sectionHeading = 'text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3 mt-6 first:mt-0'
 
 type Errors = Partial<Record<keyof FormState, string>>
@@ -190,8 +211,8 @@ export default function BookForm({ initialValues, scanDate, confidence = {}, onS
       {/* Classification */}
       <h3 className={sectionHeading}>Classification</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField id="category" label="Category" value={form.category} onChange={set('category')} placeholder="Fiction or Non Fiction" required error={errors.category} confidence={conf('category')} />
-        <FormField id="genre" label="Genre" value={form.genre} onChange={set('genre')} placeholder="Genre" required error={errors.genre} confidence={conf('genre')} />
+        <FormField id="category" label="Category" value={form.category} onChange={set('category')} type="select" options={categoryOptions} required error={errors.category} confidence={conf('category')} />
+        <FormField id="genre" label="Genre" value={form.genre} onChange={set('genre')} type="select" options={genreOptions} required error={errors.genre} confidence={conf('genre')} />
         <FormField
           id="collection"
           label="Collection"
