@@ -15,7 +15,10 @@ CRITICAL RULES:
    - If both appear on the book, fill both directly.
    - If neither can be determined, use "" for both.
 6. For "pageCount", return only a numeric string (e.g., "312") or "".
-7. For "category", return exactly "Fiction", "Non-Fiction", or "Miscellaneous" (nothing else).
+7. For "category", return exactly one of these values or "":
+   Fiction, Non-Fiction, Miscellaneous
+15. For "genre", return exactly one of these values or "":
+   Agriculture, Analytical Essays, Art, Art History, Autobiography, Belles Letters, Bilingual, Biography, Children, Collected Works, Comedy, Cooking, Crime, Culture, Dictionary, Drama, Education, Essay, Fiction, Historical Fiction, History, Indian Magazine, Indian Philosophy, Islamic History, Letters, Literary Criticism, Lyrics, Magazine, Math, Memoir, Miscellaneous, Muktijuddha, Mythology, Nature, Non-Fiction, Novel, Novella, Partitition, Philosophy, Play, Poetry, Reference, Religion, Sanskrit, Science, Science Fiction, Short Stories, Song, Spirituality, Story, Tagore, Thriller, Translation, Travel, Travelogue, Workbook
 8. For "collection", return one of these exact human-readable values or "":
    Art, Biography, Children, Collection, Literary Criticism, Fiction, History, Mythology, Miscellaneous, Non-Fiction, Play, Poetry, Reference, Science Fiction, Spiritual, Sports, Travel, Cook, Music, Essay
 9. For "itemType", return one of these exact human-readable values or "":
