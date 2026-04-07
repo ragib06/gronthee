@@ -144,6 +144,7 @@ gronthee/
    - Required fields validated on save: title, author, publisher, publishedYear, isbn, category, genre, collection, itemType, pageCount, language, edition, publicationPlace, summary. Optional: subTitle, otherTitle, secondAuthor, editor, translator, illustrator. Save is blocked and all empty required fields are highlighted simultaneously; each error clears as the user fills in that field. On failed save, a red error banner appears below the last field instructing the user to fill in all highlighted fields; banner disappears on a successful save.
    - `category` is a dropdown with fixed options: "Fiction", "Non-Fiction", "Miscellaneous"
    - `genre` is a dropdown with 56 fixed options (Agriculture, Analytical Essays, Art, … Workbook)
+   - Both `category` and `genre` are validated against their option sets in `initForm`; AI values that don't exactly match an option are reset to `''`, forcing the user to select
    - ISBN is sanitized at parse time: dashes are stripped (e.g. `978-3-16-148410-0` → `9783161484100`); empty value defaults to `N/A`
    - `ScanDateField` for the non-editable date
    - Image thumbnail grid: `grid-cols-2`, `max-w-[240px]` on mobile to keep thumbnails compact (~120px each); `md:max-w-none` on desktop

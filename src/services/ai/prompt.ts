@@ -15,7 +15,7 @@ CRITICAL RULES:
    - If both appear on the book, fill both directly.
    - If neither can be determined, use "" for both.
 6. For "pageCount", return only a numeric string (e.g., "312") or "".
-7. For "category", return exactly "Fiction" or "Non Fiction" (nothing else).
+7. For "category", return exactly "Fiction", "Non-Fiction", or "Miscellaneous" (nothing else).
 8. For "collection", return one of these exact human-readable values or "":
    Art, Biography, Children, Collection, Literary Criticism, Fiction, History, Mythology, Miscellaneous, Non-Fiction, Play, Poetry, Reference, Science Fiction, Spiritual, Sports, Travel, Cook, Music, Essay
 9. For "itemType", return one of these exact human-readable values or "":

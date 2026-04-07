@@ -12,7 +12,7 @@ interface FormFieldProps {
   confidence?: 'very low' | 'low' | 'high'
 }
 
-const inputClass =
+const inputBase =
   'w-full rounded-lg border px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-shadow'
 
 const readOnlyClass =
@@ -32,13 +32,40 @@ export default function FormField({
   confidence,
 }: FormFieldProps) {
   const isEmpty = required && !value.trim()
-  const borderClass = error
-    ? 'border-red-400 focus:ring-red-400'
+
+  // Border color used for text/textarea on the element itself, and for the select wrapper div
+  const borderColor = error
+    ? 'border-red-400'
+    : isEmpty
+    ? 'border-amber-400'
     : confidence === 'very low'
-    ? 'border-orange-400 focus:ring-orange-400'
+    ? 'border-orange-400'
     : confidence === 'low'
-    ? 'border-amber-400 focus:ring-amber-400'
-    : 'border-gray-200 focus:ring-indigo-500'
+    ? 'border-amber-400'
+    : 'border-gray-200'
+
+  // Focus ring color for text/textarea
+  const focusRing = error
+    ? 'focus:ring-red-400'
+    : isEmpty
+    ? 'focus:ring-amber-400'
+    : confidence === 'very low'
+    ? 'focus:ring-orange-400'
+    : confidence === 'low'
+    ? 'focus:ring-amber-400'
+    : 'focus:ring-indigo-500'
+
+  // focus-within ring for the select wrapper div
+  const focusWithinRing = error
+    ? 'focus-within:ring-2 focus-within:ring-red-400 focus-within:border-transparent'
+    : isEmpty
+    ? 'focus-within:ring-2 focus-within:ring-amber-400 focus-within:border-transparent'
+    : confidence === 'very low'
+    ? 'focus-within:ring-2 focus-within:ring-orange-400 focus-within:border-transparent'
+    : confidence === 'low'
+    ? 'focus-within:ring-2 focus-within:ring-amber-400 focus-within:border-transparent'
+    : 'focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent'
+
   const bgClass = isEmpty ? 'bg-amber-50' : 'bg-white'
 
   return (
@@ -56,19 +83,28 @@ export default function FormField({
           onChange={e => onChange?.(e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className={`${inputClass} ${borderClass} ${bgClass} resize-none`}
+          className={`${inputBase} ${borderColor} ${focusRing} ${bgClass} resize-none`}
         />
       ) : type === 'select' ? (
-        <select
-          id={id}
-          value={value}
-          onChange={e => onChange?.(e.target.value)}
-          className={`${inputClass} ${borderClass} ${bgClass}`}
-        >
-          {options.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        // Border and bg go on the wrapper div — CSS on div is always reliable,
+        // unlike <select> where browsers (especially iOS Safari) override styling.
+        <div className={`relative rounded-lg border ${borderColor} ${bgClass} ${focusWithinRing} transition-shadow`}>
+          <select
+            id={id}
+            value={value}
+            onChange={e => onChange?.(e.target.value)}
+            className="w-full bg-transparent px-3 py-2 text-sm text-gray-900 focus:outline-none appearance-none pr-8 rounded-lg"
+          >
+            {options.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 8l4 4 4-4" />
+            </svg>
+          </div>
+        </div>
       ) : (
         <input
           id={id}
@@ -76,7 +112,7 @@ export default function FormField({
           value={value}
           onChange={e => onChange?.(e.target.value)}
           placeholder={placeholder}
-          className={`${inputClass} ${borderClass} ${bgClass}`}
+          className={`${inputBase} ${borderColor} ${focusRing} ${bgClass}`}
         />
       )}
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}

@@ -37,7 +37,43 @@ type FormState = {
   summary: string
 }
 
+const collectionOptions = [
+  { value: '', label: '' },
+  ...Object.entries(COLLECTION_LABELS).map(([code, label]) => ({ value: code, label })),
+]
+
+const itemTypeOptions = [
+  { value: '', label: '' },
+  ...Object.entries(ITEM_TYPE_LABELS).map(([code, label]) => ({ value: code, label })),
+]
+
+const categoryOptions = [
+  { value: '', label: '' },
+  { value: 'Fiction', label: 'Fiction' },
+  { value: 'Non-Fiction', label: 'Non-Fiction' },
+  { value: 'Miscellaneous', label: 'Miscellaneous' },
+]
+
+const genreOptions = [
+  { value: '', label: '' },
+  'Agriculture', 'Analytical Essays', 'Art', 'Art History', 'Autobiography',
+  'Belles Letters', 'Bilingual', 'Biography', 'Children', 'Collected Works',
+  'Comedy', 'Cooking', 'Crime', 'Culture', 'Dictionary', 'Drama', 'Education',
+  'Essay', 'Fiction', 'Historical Fiction', 'History', 'Indian Magazine',
+  'Indian Philosophy', 'Islamic History', 'Letters', 'Literary Criticism',
+  'Lyrics', 'Magazine', 'Math', 'Memoir', 'Miscellaneous', 'Muktijuddha',
+  'Mythology', 'Nature', 'Non-Fiction', 'Novel', 'Novella', 'Partitition',
+  'Philosophy', 'Play', 'Poetry', 'Reference', 'Religion', 'Sanskrit', 'Science',
+  'Science Fiction', 'Short Stories', 'Song', 'Spirituality', 'Story', 'Tagore',
+  'Thriller', 'Translation', 'Travel', 'Travelogue', 'Workbook',
+].map(v => typeof v === 'string' ? { value: v, label: v } : v)
+
+const validCategories = new Set(categoryOptions.map(o => o.value).filter(Boolean))
+const validGenres = new Set(genreOptions.map(o => o.value).filter(Boolean))
+
 function initForm(initial: Partial<BookMetadata>): FormState {
+  const category = initial.category ?? ''
+  const genre = initial.genre ?? ''
   return {
     title: initial.title ?? '',
     subTitle: initial.subTitle ?? '',
@@ -51,8 +87,8 @@ function initForm(initial: Partial<BookMetadata>): FormState {
     publishedYear: initial.publishedYear ?? '',
     publishedYearBengali: initial.publishedYearBengali ?? '',
     isbn: initial.isbn ?? '',
-    category: initial.category ?? '',
-    genre: initial.genre ?? '',
+    category: validCategories.has(category) ? category : '',
+    genre: validGenres.has(genre) ? genre : '',
     collection: initial.collection ?? '',
     itemType: initial.itemType ?? '',
     pageCount: initial.pageCount ?? '',
@@ -62,37 +98,6 @@ function initForm(initial: Partial<BookMetadata>): FormState {
     summary: initial.summary ?? '',
   }
 }
-
-const collectionOptions = [
-  { value: '', label: 'Select collection' },
-  ...Object.entries(COLLECTION_LABELS).map(([code, label]) => ({ value: code, label })),
-]
-
-const itemTypeOptions = [
-  { value: '', label: 'Select item type' },
-  ...Object.entries(ITEM_TYPE_LABELS).map(([code, label]) => ({ value: code, label })),
-]
-
-const categoryOptions = [
-  { value: '', label: 'Select category' },
-  { value: 'Fiction', label: 'Fiction' },
-  { value: 'Non-Fiction', label: 'Non-Fiction' },
-  { value: 'Miscellaneous', label: 'Miscellaneous' },
-]
-
-const genreOptions = [
-  { value: '', label: 'Select genre' },
-  'Agriculture', 'Analytical Essays', 'Art', 'Art History', 'Autobiography',
-  'Belles Letters', 'Bilingual', 'Biography', 'Children', 'Collected Works',
-  'Comedy', 'Cooking', 'Crime', 'Culture', 'Dictionary', 'Drama', 'Education',
-  'Essay', 'Fiction', 'Historical Fiction', 'History', 'Indian Magazine',
-  'Indian Philosophy', 'Islamic History', 'Letters', 'Literary Criticism',
-  'Lyrics', 'Magazine', 'Math', 'Memoir', 'Miscellaneous', 'Muktijuddha',
-  'Mythology', 'Nature', 'Non-Fiction', 'Novel', 'Novella', 'Partitition',
-  'Philosophy', 'Play', 'Poetry', 'Reference', 'Religion', 'Sanskrit', 'Science',
-  'Science Fiction', 'Short Stories', 'Song', 'Spirituality', 'Story', 'Tagore',
-  'Thriller', 'Translation', 'Travel', 'Travelogue', 'Workbook',
-].map(v => typeof v === 'string' ? { value: v, label: v } : v)
 
 const sectionHeading = 'text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3 mt-6 first:mt-0'
 
