@@ -499,6 +499,7 @@ export const AI_CONFIG: AIConfig = {
       models: [
         { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
         { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+        { id: 'gemma-4-31b-it', label: 'Gemma 4 31B' },
       ],
     },
     {
