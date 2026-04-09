@@ -405,6 +405,7 @@ CRITICAL RULES:
 9. For "summary", write 1-2 sentences in English describing the book's subject matter.
 10. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "". Only consider edition/publication dates — ignore impression, print run, and reprint dates. If multiple editions, return the highest (latest) one.
 11. For "publicationPlace", return the city name only — do not include country or state (e.g., "New York", not "New York, USA").
+12. For "publisher": on Bengali books, use the name listed under প্রকাশক (publisher) — NOT পরিবেশক (distributor). If both appear, always use প্রকাশক.
 
 Return this exact JSON structure:
 {

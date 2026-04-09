@@ -26,6 +26,7 @@ CRITICAL RULES:
 10. For "summary", write 1-2 sentences in English describing the book's subject matter.
 11. For "edition", use ordinal form: "1st", "2nd", "3rd", etc., or "". Only consider edition or publication dates — ignore impression numbers, print run numbers, and reprint dates entirely. If multiple editions are mentioned, always return the highest (latest) one.
 12. For "publicationPlace", return the city name only — do not include country or state (e.g., "New York", not "New York, USA").
+16. For "publisher": on Bengali books, use the name listed under প্রকাশক (publisher) — NOT পরিবেশক (distributor). If both appear, always use প্রকাশক.
 14. For every field, include a corresponding entry in the "confidence" object using one of these exact values:
     - "high": the value is clearly and unambiguously visible in the images
     - "low": the value is present but partially obscured, inferred, or uncertain

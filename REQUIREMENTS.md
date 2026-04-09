@@ -18,7 +18,7 @@ Gronthee is a web-based application designed to automate the process of catalogi
     - **Editor**: Editor's name (common for collections).
     - **Translator**: Name of the translator for translated works.
     - **Illustrator**: Name of the illustrator.
-    - **Publisher**: Publishing house name.
+    - **Publisher**: Publishing house name. For Bengali books, the AI is instructed to use the name listed under প্রকাশক (publisher) — not পরিবেশক (distributor). If both appear, প্রকাশক always takes priority.
     - **Published Year**: Year of publication in Gregorian YYYY format. When multiple editions with different years appear on the book, the AI always picks the latest year. The AI also extracts or derives the Bengali era (Bangla Saal) year (`publishedYearBengali`). If only a Bengali year appears on the book (e.g. "Boishakh 1407"), it is converted to Gregorian by adding 593. If only a Gregorian year is present, the Bengali year is derived by subtracting 593. Both fields are always filled when at least one is determinable. In the editor, when a Bengali year is present, a note is shown below the Year field: "Bengali calendar: {year} BS".
     - **ISBN**: International Standard Book Number. Dashes must be stripped on save (e.g. `978-3-16-148410-0` → `9783161484100`). If the AI returns no value, defaults to `N/A`.
     - **Category**: High-level classification. Dropdown with fixed options: "Fiction", "Non-Fiction", "Miscellaneous". AI is instructed to return one of these exact values. If the AI returns a value not in the list, it is reset to empty and the user must select manually.
