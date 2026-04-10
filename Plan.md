@@ -40,7 +40,7 @@ gronthee/
 │   │   │   └── Header.tsx            # Logo, nav links, model selector
 │   │   │
 │   │   ├── scanner/
-│   │   │   ├── ScannerPage.tsx       # Top-level scan page
+│   │   │   ├── ScannerPage.tsx       # Top-level scan page; persists tab choice ('scanner-tab' in localStorage); 3-min inactivity timer auto-reverts webcam tab to upload
 │   │   │   ├── DropZone.tsx          # react-dropzone wrapper
 │   │   │   ├── WebcamCapture.tsx     # react-webcam wrapper + capture button; auto-scrolls feed into view on ready (window.scrollTo, offset -60); max-h-[52vh] w-auto feed, w-fit container
 │   │   │   ├── ImagePreview.tsx      # Thumbnail grid for selected images

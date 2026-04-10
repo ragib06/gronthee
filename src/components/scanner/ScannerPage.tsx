@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { ScanLine } from 'lucide-react'
 import type { NavigateFn } from '@/App'
@@ -31,8 +31,42 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 export default function ScannerPage({ navigate, selectedModel, onModelChange, username }: ScannerPageProps) {
-  const [tab, setTab] = useState<'upload' | 'webcam'>('upload')
+  const [tab, setTab] = useState<'upload' | 'webcam'>(() => {
+    return (localStorage.getItem('scanner-tab') as 'upload' | 'webcam') ?? 'upload'
+  })
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputAreaRef = useRef<HTMLDivElement>(null)
+
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+    inactivityTimer.current = setTimeout(() => {
+      setTab('upload')
+      localStorage.removeItem('scanner-tab')
+    }, 3 * 60 * 1000)
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'webcam') {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+      return
+    }
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const
+    resetInactivityTimer()
+    events.forEach(e => window.addEventListener(e, resetInactivityTimer))
+    return () => {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current)
+      events.forEach(e => window.removeEventListener(e, resetInactivityTimer))
+    }
+  }, [tab, resetInactivityTimer])
+
+  function handleTabChange(t: 'upload' | 'webcam') {
+    setTab(t)
+    if (t === 'webcam') {
+      localStorage.setItem('scanner-tab', 'webcam')
+    } else {
+      localStorage.removeItem('scanner-tab')
+    }
+  }
   const [images, setImages] = useState<string[]>([])
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -105,7 +139,7 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
         {(['upload', 'webcam'] as const).map(t => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => handleTabChange(t)}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
               tab === t
                 ? 'bg-white text-gray-900 shadow-sm'
