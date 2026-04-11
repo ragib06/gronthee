@@ -62,6 +62,35 @@ You only need keys for the providers you intend to use. `.env.local` is gitignor
 
 > **Deploying to Vercel?** Add these as environment variables in the Vercel dashboard (Settings → Environment Variables) instead of using `.env.local`.
 
+### 3a. (Optional) HTTPS with a trusted local certificate for mobile testing
+
+Webcam access requires HTTPS when accessing the app from a phone on your local network. To enable this, generate a trusted cert with [mkcert](https://github.com/FiloSottile/mkcert) and add the paths to `.env.local`:
+
+```bash
+# Install mkcert
+sudo apt install mkcert   # Ubuntu/Debian
+brew install mkcert       # macOS
+
+# Install the local CA and generate a cert for your machine's IP
+mkcert -install
+mkcert localhost 127.0.0.1 <your-local-ip>   # e.g. 192.168.1.42
+```
+
+Then add to `.env.local`:
+
+```bash
+LOCAL_CERT=/path/to/localhost+2.pem
+LOCAL_KEY=/path/to/localhost+2-key.pem
+```
+
+The cert path is wherever you ran `mkcert` — check with `mkcert -CAROOT` for the CA folder.
+
+On your phone, install and trust the mkcert root CA (`rootCA.pem` from `mkcert -CAROOT`):
+- **iOS**: install the profile, then go to Settings → General → About → Certificate Trust Settings and enable it
+- **Android**: Settings → Security → Install certificate → CA certificate
+
+This config is local-only — the `LOCAL_CERT` variables are never set in Vercel so production is unaffected.
+
 ### 4. (Optional) Customise AI providers and models
 
 The provider and model list lives in `ai-config.json` at the project root. It is committed to the repo and contains no secrets. Edit it to add, remove, or reorder providers and models:
@@ -92,7 +121,7 @@ See `ai-config.example.json` for the full default configuration.
 npm run dev
 ```
 
-The app runs over HTTPS locally via `vite-plugin-mkcert` (required for webcam access). Accept the locally-trusted certificate if prompted.
+The app runs over HTTP by default. To enable HTTPS (required for webcam access from a phone), complete step 3a above first.
 
 ---
 
