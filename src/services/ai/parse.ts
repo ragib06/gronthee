@@ -4,16 +4,27 @@ import { LABEL_TO_COLLECTION, LABEL_TO_ITEM_TYPE } from '@/constants/mappings'
 export interface ParsedAIResponse {
   metadata: Partial<BookMetadata>
   confidence: FieldConfidence
+  raw: string   // JSON substring from the AI response (markdown fences + surrounding prose stripped), preserved for R&D export
+}
+
+// Strip markdown fences and any prose before/after the JSON object so `raw`
+// contains only `{…}` — safer for downstream R&D analysis.
+function extractJson(text: string): string {
+  const stripped = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim()
+  const first = stripped.indexOf('{')
+  const last = stripped.lastIndexOf('}')
+  if (first === -1 || last === -1 || last < first) return stripped
+  return stripped.slice(first, last + 1)
 }
 
 export function parseAIResponse(raw: string): ParsedAIResponse {
-  const cleaned = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim()
+  const cleaned = extractJson(raw)
 
   let parsed: Record<string, unknown>
   try {
     parsed = JSON.parse(cleaned) as Record<string, unknown>
   } catch {
-    return { metadata: {}, confidence: {} }
+    return { metadata: {}, confidence: {}, raw: cleaned }
   }
 
   function str(val: unknown): string {
@@ -57,5 +68,5 @@ export function parseAIResponse(raw: string): ParsedAIResponse {
     summary: str(parsed['summary']),
   }
 
-  return { metadata, confidence }
+  return { metadata, confidence, raw: cleaned }
 }

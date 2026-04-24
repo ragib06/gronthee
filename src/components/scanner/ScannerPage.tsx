@@ -117,11 +117,16 @@ export default function ScannerPage({
     try {
       const compressed = await Promise.all(images.map(compressImageForApi))
       const base64Images = compressed.map(dataUrlToBase64Image)
-      const { metadata: raw, confidence } = await extractBookMetadata(base64Images, selectedModel)
+      const { metadata, confidence, raw: rawAIOutput } = await extractBookMetadata(base64Images, selectedModel)
       const prefs = loadPreferences()
-      const withPrefs = applyPreferences(raw as Record<string, string>, prefs) as Partial<BookMetadata>
-      const metadata = pageCount ? { ...withPrefs, pageCount } : withPrefs
-      navigate('editor', { pendingMetadata: metadata, pendingImages: images, pendingConfidence: confidence })
+      const withPrefs = applyPreferences(metadata as Record<string, string>, prefs) as Partial<BookMetadata>
+      const finalMetadata = pageCount ? { ...withPrefs, pageCount } : withPrefs
+      navigate('editor', {
+        pendingMetadata: finalMetadata,
+        pendingImages: images,
+        pendingConfidence: confidence,
+        pendingRawAIOutput: rawAIOutput,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to scan book. Please try again.')
     } finally {

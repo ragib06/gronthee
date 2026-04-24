@@ -34,6 +34,7 @@ export interface EditorParams {
   pendingMetadata?: Partial<BookMetadata>
   pendingImages?: string[]
   pendingConfidence?: FieldConfidence
+  pendingRawAIOutput?: string
   flashMessage?: string
 }
 
@@ -105,6 +106,7 @@ function App() {
             pendingMetadata={editorParams.pendingMetadata}
             pendingImages={editorParams.pendingImages ?? []}
             pendingConfidence={editorParams.pendingConfidence}
+            pendingRawAIOutput={editorParams.pendingRawAIOutput}
             currentSession={currentSession}
             onAdd={addBook}
             onUpdate={updateBook}

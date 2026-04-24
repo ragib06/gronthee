@@ -1,5 +1,7 @@
 import type { BookMetadata, Session } from '@/types'
 
+const RND_HEADERS = ['Book ID', 'Images', 'Prompt Output']
+
 const HEADERS = [
   'ISBN',
   'Language',
@@ -51,6 +53,14 @@ function escape(val: string): string {
 }
 
 const EMPTY = ''
+
+function rndRow(book: BookMetadata): string[] {
+  return [
+    book.id,
+    book.imageUrls && book.imageUrls.length > 0 ? JSON.stringify(book.imageUrls) : '',
+    book.rawAIOutput ?? '',
+  ]
+}
 
 function toRow(book: BookMetadata): string[] {
   return [
@@ -111,18 +121,24 @@ function nameToSlug(name: string): string {
     .replace(/\s+/g, '-') || 'session'
 }
 
-export function defaultCsvFilename(username: string): string {
-  return `gronthee-${username}-${datetimeStamp()}.csv`
+export function defaultCsvFilename(username: string, includeRnd = false): string {
+  const prefix = includeRnd ? 'gronthee-rnd-' : 'gronthee-'
+  return `${prefix}${username}-${datetimeStamp()}.csv`
 }
 
-export function sessionCsvFilename(username: string, sessionName: string): string {
-  return `gronthee-${username}-${nameToSlug(sessionName)}-${datetimeStamp()}.csv`
+export function sessionCsvFilename(username: string, sessionName: string, includeRnd = false): string {
+  const prefix = includeRnd ? 'gronthee-rnd-' : 'gronthee-'
+  return `${prefix}${username}-${nameToSlug(sessionName)}-${datetimeStamp()}.csv`
 }
 
-function downloadCsv(books: BookMetadata[], filename: string): void {
+function downloadCsv(books: BookMetadata[], filename: string, includeRnd: boolean): void {
+  const headers = includeRnd ? [...HEADERS, ...RND_HEADERS] : HEADERS
   const rows = [
-    HEADERS.map(escape).join(','),
-    ...books.map(b => toRow(b).map(escape).join(',')),
+    headers.map(escape).join(','),
+    ...books.map(b => {
+      const cells = includeRnd ? [...toRow(b), ...rndRow(b)] : toRow(b)
+      return cells.map(escape).join(',')
+    }),
   ]
   const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -135,21 +151,22 @@ function downloadCsv(books: BookMetadata[], filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function exportToCsv(books: BookMetadata[], filename: string): void {
-  downloadCsv(books, filename)
+export function exportToCsv(books: BookMetadata[], filename: string, includeRnd = false): void {
+  downloadCsv(books, filename, includeRnd)
 }
 
 export function exportSessionsToCsv(
   sessions: Session[],
   books: BookMetadata[],
   username: string,
+  includeRnd = false,
 ): void {
   // Stagger downloads by 300 ms each — browsers silently drop simultaneous
   // programmatic clicks so only the first file would otherwise be saved.
   sessions.forEach((session, i) => {
     setTimeout(() => {
       const sessionBooks = books.filter(b => b.sessionId === session.id)
-      downloadCsv(sessionBooks, sessionCsvFilename(username, session.name))
+      downloadCsv(sessionBooks, sessionCsvFilename(username, session.name, includeRnd), includeRnd)
     }, i * 300)
   })
 }

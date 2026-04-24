@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertCircle, Save } from 'lucide-react'
+import { AlertCircle, Loader2, Save } from 'lucide-react'
 import type { BookMetadata, CollectionCode, FieldConfidence, ItemTypeCode } from '@/types'
 import { COLLECTION_LABELS, ITEM_TYPE_LABELS } from '@/constants/mappings'
 import FormField from './FormField'
@@ -10,6 +10,7 @@ interface BookFormProps {
   scanDate: string
   confidence?: FieldConfidence
   sessionName?: string
+  isSaving?: boolean
   onSave: (data: Omit<BookMetadata, 'id' | 'sessionId'>) => void
   onCancel: () => void
 }
@@ -120,7 +121,7 @@ function validate(form: FormState): Errors {
   return errors
 }
 
-export default function BookForm({ initialValues, scanDate, confidence = {}, sessionName, onSave, onCancel }: BookFormProps) {
+export default function BookForm({ initialValues, scanDate, confidence = {}, sessionName, isSaving = false, onSave, onCancel }: BookFormProps) {
   function conf(field: keyof FormState): 'very low' | 'low' | 'high' | undefined {
     const val = form[field]
     if (!val || val === 'N/A') return undefined
@@ -262,16 +263,27 @@ export default function BookForm({ initialValues, scanDate, confidence = {}, ses
       <div className="flex justify-end gap-3 mt-4">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+          disabled={isSaving}
+          className="px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-5 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors"
+          disabled={isSaving}
+          className="flex items-center gap-2 px-5 py-2 text-sm rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors disabled:opacity-70"
         >
-          <Save size={15} />
-          Save Book
+          {isSaving ? (
+            <>
+              <Loader2 size={15} className="animate-spin" />
+              Uploading…
+            </>
+          ) : (
+            <>
+              <Save size={15} />
+              Save Book
+            </>
+          )}
         </button>
       </div>
       {sessionName && (

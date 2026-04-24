@@ -571,6 +571,7 @@ Phase 3 — AI Integration  Provider adapters, prompt, scan flow wired end-to-en
 Phase 4 — Data Layer      localStorage persistence, preferences, CSV export
 Phase 5 — Polish          Responsiveness, accessibility, error handling, animations
 Phase 6 — Sessions        Named session management (implemented 2026-04-23)
+Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23)
 ```
 
 ---
@@ -619,6 +620,38 @@ Phase 6 — Sessions        Named session management (implemented 2026-04-23)
 - **Export**: Per-row Export button in the dialog; each click downloads that session's CSV immediately without closing the dialog. No checkboxes or bulk-select. Downloads are staggered 300 ms apart (browser blocks simultaneous programmatic clicks). Filename uses session name slug: `gronthee-<username>-<sessionSlug>-<datetime>.csv`
 - **Active session label**: On the Review & Save page (new book only), "Active session: `<name>`" is shown right-aligned below the Save button so users can confirm the target session before saving
 
+---
+
+## 10. Phase 7 — Image Storage / Cloudflare R2 (implemented 2026-04-23)
+
+**Goal**: Compress and upload scanned images to Cloudflare R2 on save; store public URLs in `BookMetadata`.
+
+### New files
+| File | Purpose |
+|---|---|
+| `src/services/imageCompression.ts` | Canvas-based JPEG compression (max 1200 px, quality 0.8) |
+| `src/services/r2Storage.ts` | Compress + upload images to R2 via `aws4fetch`; returns public URLs |
+
+### Modified files
+| File | Change |
+|---|---|
+| `src/types/index.ts` | Added `imageUrls?: string[]` to `BookMetadata` |
+| `src/hooks/useUserPreferences.ts` | Updated cast to `Record<string, unknown>` to accommodate `imageUrls` array field |
+| `src/components/editor/BookEditorPage.tsx` | Awaits R2 upload before `onAdd`; passes `isSaving` to `BookForm`; shows amber warning on partial upload failure |
+| `src/components/editor/BookForm.tsx` | Added `isSaving` prop; Save button shows spinner + "Uploading…" during upload; Cancel disabled during upload |
+| `package.json` | Added `aws4fetch` dependency |
+
+### Design decisions
+- **Upload on save (add only)**: Upload happens when a new book is saved; edits preserve existing `imageUrls` unchanged
+- **File path**: `{bookId}/{index}.jpg` — 1-based index, always JPEG regardless of input format
+- **Parallel uploads**: All images for a book are uploaded concurrently via `Promise.all`
+- **Non-blocking failure**: Partial or total upload failure shows an amber warning; book is always saved (with whatever URLs succeeded)
+- **Silent degradation**: If credentials are not configured (e.g. local dev without `.env.local`), upload is skipped with no error
+- **No CSV column by default**: Image URLs are not in the default CSV (format matches an external library system). See Phase 8 — image URLs are available via the optional R&D columns.
+- **No R2 delete on book delete**: Deferred; can be added as a cleanup feature later
+- **Public URL hardcoded**: `https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev` is hardcoded in `r2Storage.ts`
+- **Env vars**: `VITE_CLOUDFLARE_ACCOUNT_ID`, `VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `VITE_CLOUDFLARE_R2_API_KEY` (secret key), `VITE_CLOUDFLARE_R2_BUCKET_NAME`
+
 ### Critical Files (must exist before dependent work can proceed)
 
 - `.env.example` + `src/config/ai-config.ts` — gates `ModelSelector` and all AI integration work
@@ -626,3 +659,32 @@ Phase 6 — Sessions        Named session management (implemented 2026-04-23)
 - `src/services/ai/index.ts` — the dispatcher and shared prompt
 - `src/hooks/useBookHistory.ts` — required before save/history/export features
 - `src/hooks/useUserPreferences.ts` — must be wired into both form (recording) and dispatcher (applying)
+
+---
+
+## 11. Phase 8 — R&D Export Columns (implemented 2026-04-24)
+
+**Goal**: Let users optionally include three research-oriented columns in the CSV export (Book ID, Images, raw AI prompt output) for data-quality analysis, without changing the default export shape that matches the external library system.
+
+### Modified files
+| File | Change |
+|---|---|
+| `src/types/index.ts` | Added `rawAIOutput?: string` to `BookMetadata` |
+| `src/services/ai/parse.ts` | `ParsedAIResponse` now includes `raw: string` — the exact AI response text, returned alongside parsed metadata |
+| `src/App.tsx` | Added `pendingRawAIOutput?: string` to `EditorParams`; threaded through to `BookEditorPage` |
+| `src/components/scanner/ScannerPage.tsx` | Captures `raw` from `extractBookMetadata` and forwards it via navigate |
+| `src/components/editor/BookEditorPage.tsx` | Accepts `pendingRawAIOutput`; persists it on `onAdd`; preserves existing `rawAIOutput` on edit |
+| `src/services/csv.ts` | Added `includeRnd` option (default `false`) to `exportToCsv` + `exportSessionsToCsv`; appends `Book ID`, `Images`, `Prompt Output` columns when true; filename helpers prefix with `gronthee-rnd-` in R&D mode |
+| `src/components/shared/ExportSessionDialog.tsx` | Added "Include R&D columns" checkbox (unchecked by default); resets each time dialog opens; passed through to `exportSessionsToCsv` |
+
+### Design decisions
+- **Opt-in, unchecked default**: Base CSV shape unchanged so it stays compatible with the external library system. R&D data is appended only when explicitly requested.
+- **Images column format**: JSON-encoded array of URLs (e.g. `["…/1.jpg","…/2.jpg"]`). Empty string when no URLs. CSV escape handles the inner quotes.
+- **Prompt Output**: the JSON body returned by the AI, with markdown fences (```` ```json ```` / ```` ``` ````) and any leading/trailing prose stripped so the cell starts with `{` and ends with `}`. Not re-serialised — the internal structure/whitespace is preserved.
+- **Raw AI output captured in `parse.ts`**: parse already receives the text and already strips fences for JSON parsing — returning the cleaned form avoids touching any of the four provider files.
+- **Edit preserves raw output**: Editing an existing book keeps its original `rawAIOutput`; it's only set during initial save from the scan flow.
+- **Checkbox state resets per-open**: opening the dialog always starts with the box unchecked.
+
+### Tests
+- `src/services/csv.test.ts` — default export excludes R&D headers; `includeRnd=true` appends the three columns with correct encoding; empty cells for pre-feature books.
+- `src/components/shared/ExportSessionDialog.test.tsx` — updated existing tests for the new 4th argument; added coverage for checking the R&D box and confirming `includeRnd=true` flows through.

@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.80.0",
     "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.2.2",
+    "aws4fetch": "^1.0.20",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "openai": "^6.33.0",

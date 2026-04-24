@@ -4,6 +4,7 @@ import { ChevronLeft, ImageOff, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { NavigateFn } from '@/App'
 import type { BookMetadata, FieldConfidence, Session } from '@/types'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
+import { uploadImagesToR2 } from '@/services/r2Storage'
 import BookForm from './BookForm'
 
 interface BookEditorPageProps {
@@ -12,6 +13,7 @@ interface BookEditorPageProps {
   pendingMetadata?: Partial<BookMetadata>
   pendingImages: string[]
   pendingConfidence?: FieldConfidence
+  pendingRawAIOutput?: string
   currentSession: Session
   onAdd: (book: BookMetadata) => void
   onUpdate: (book: BookMetadata) => void
@@ -23,12 +25,15 @@ export default function BookEditorPage({
   pendingMetadata,
   pendingImages,
   pendingConfidence,
+  pendingRawAIOutput,
   currentSession,
   onAdd,
   onUpdate,
 }: BookEditorPageProps) {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [zoomLevel, setZoomLevel] = useState(1)
+  const [isSaving, setIsSaving] = useState(false)
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null)
 
   const ZOOM_STEPS = [1, 1.5, 2, 3]
 
@@ -73,14 +78,48 @@ export default function BookEditorPage({
   const scanDate = book?.scanDate ?? new Date().toISOString().slice(0, 10)
   const { recordCorrections } = useUserPreferences()
 
-  function handleSave(data: Omit<BookMetadata, 'id' | 'sessionId'>) {
+  async function handleSave(data: Omit<BookMetadata, 'id' | 'sessionId'>) {
     if (isEdit && book) {
-      onUpdate({ ...data, id: book.id, scanDate, sessionId: book.sessionId })
-    } else {
-      if (pendingMetadata) recordCorrections(pendingMetadata, data)
-      onAdd({ ...data, id: generateId(), scanDate, sessionId: currentSession.id })
+      onUpdate({
+        ...data,
+        id: book.id,
+        scanDate,
+        sessionId: book.sessionId,
+        imageUrls: book.imageUrls,
+        rawAIOutput: book.rawAIOutput,
+      })
+      navigate('history', { flashMessage: 'Book updated successfully.' })
+      return
     }
-    navigate('history', { flashMessage: isEdit ? 'Book updated successfully.' : 'Book saved successfully.' })
+
+    const bookId = generateId()
+    setIsSaving(true)
+    setUploadWarning(null)
+
+    let imageUrls: string[] | undefined
+    if (pendingImages.length > 0) {
+      const { urls, failed } = await uploadImagesToR2(bookId, pendingImages)
+      if (urls.length > 0) imageUrls = urls
+      if (failed > 0) {
+        setUploadWarning(
+          failed === pendingImages.length
+            ? 'Images could not be uploaded to storage. Book saved locally.'
+            : `${failed} of ${pendingImages.length} images could not be uploaded to storage.`,
+        )
+      }
+    }
+
+    if (pendingMetadata) recordCorrections(pendingMetadata, data)
+    onAdd({
+      ...data,
+      id: bookId,
+      scanDate,
+      sessionId: currentSession.id,
+      imageUrls,
+      rawAIOutput: pendingRawAIOutput,
+    })
+    setIsSaving(false)
+    navigate('history', { flashMessage: 'Book saved successfully.' })
   }
 
   function handleCancel() {
@@ -142,11 +181,17 @@ export default function BookEditorPage({
 
         {/* Right: Form */}
         <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          {uploadWarning && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 mb-4">
+              {uploadWarning}
+            </div>
+          )}
           <BookForm
             initialValues={initialValues}
             scanDate={scanDate}
             confidence={isEdit ? undefined : pendingConfidence}
             sessionName={isEdit ? undefined : currentSession.name}
+            isSaving={isSaving}
             onSave={handleSave}
             onCancel={handleCancel}
           />
