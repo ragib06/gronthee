@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Download } from 'lucide-react'
 import type { BookMetadata, Session } from '@/types'
@@ -19,6 +19,8 @@ export default function ExportSessionDialog({
   username,
   onCancel,
 }: ExportSessionDialogProps) {
+  const [includeRnd, setIncludeRnd] = useState(false)
+
   useEffect(() => {
     if (!open) return
     function handler(e: KeyboardEvent) { if (e.key === 'Escape') onCancel() }
@@ -26,8 +28,11 @@ export default function ExportSessionDialog({
     return () => document.removeEventListener('keydown', handler)
   }, [open, onCancel])
 
+  // Reset the checkbox each time the dialog re-opens
+  useEffect(() => { if (open) setIncludeRnd(false) }, [open])
+
   function handleDownload(session: Session) {
-    exportSessionsToCsv([session], books, username)
+    exportSessionsToCsv([session], books, username, includeRnd)
   }
 
   function bookCount(sessionId: string): number {
@@ -76,6 +81,22 @@ export default function ExportSessionDialog({
                 )
               })}
             </ul>
+
+            {/* R&D columns toggle */}
+            <label className="flex items-start gap-2 mb-5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeRnd}
+                onChange={e => setIncludeRnd(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-700">
+                Include R&amp;D columns
+                <span className="block text-xs text-gray-400">
+                  Adds Book ID, Images, and the raw AI prompt output.
+                </span>
+              </span>
+            </label>
 
             {/* Actions */}
             <div className="flex justify-end">

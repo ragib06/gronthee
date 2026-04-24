@@ -39,6 +39,8 @@ export interface BookMetadata {
   publicationPlace: string
   scanDate: string             // YYYY-MM-DD, auto, non-editable
   summary: string
+  imageUrls?: string[]         // public R2 URLs in scan order; undefined for pre-feature books
+  rawAIOutput?: string         // exact JSON string from the AI; undefined for pre-feature or edited books
 }
 
 // Raw AI output before corrections — collection/itemType are human-readable strings

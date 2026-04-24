@@ -68,9 +68,11 @@ describe('ExportSessionDialog', () => {
     expect(exportBtns).toHaveLength(sessions.length)
   })
 
-  it('no checkboxes rendered', () => {
+  it('renders the R&D columns checkbox, unchecked by default', () => {
     renderDialog()
-    expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
+    const checkbox = screen.getByRole('checkbox', { name: /r&d columns/i }) as HTMLInputElement
+    expect(checkbox).toBeTruthy()
+    expect(checkbox.checked).toBe(false)
   })
 
   it('no select/deselect all toggle', () => {
@@ -79,12 +81,21 @@ describe('ExportSessionDialog', () => {
     expect(screen.queryByRole('button', { name: /deselect all/i })).toBeNull()
   })
 
-  it('clicking a row Export button calls exportSessionsToCsv for that session', async () => {
+  it('clicking a row Export button calls exportSessionsToCsv for that session with includeRnd=false by default', async () => {
     const { exportSessionsToCsv } = await import('@/services/csv')
     renderDialog()
     const exportBtns = screen.getAllByRole('button', { name: /export/i })
     await userEvent.click(exportBtns[0])
-    expect(exportSessionsToCsv).toHaveBeenCalledWith([sessions[0]], books, 'ragib')
+    expect(exportSessionsToCsv).toHaveBeenCalledWith([sessions[0]], books, 'ragib', false)
+  })
+
+  it('passes includeRnd=true when the R&D checkbox is checked', async () => {
+    const { exportSessionsToCsv } = await import('@/services/csv')
+    renderDialog()
+    await userEvent.click(screen.getByRole('checkbox', { name: /r&d columns/i }))
+    const exportBtns = screen.getAllByRole('button', { name: /export/i })
+    await userEvent.click(exportBtns[0])
+    expect(exportSessionsToCsv).toHaveBeenCalledWith([sessions[0]], books, 'ragib', true)
   })
 
   it('clicking one row Export does not close the dialog', async () => {

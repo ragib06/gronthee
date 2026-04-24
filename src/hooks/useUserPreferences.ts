@@ -30,8 +30,8 @@ export function useUserPreferences() {
     original: Partial<BookMetadata>,
     saved: Omit<BookMetadata, 'id' | 'sessionId'>
   ) {
-    const orig = (original as Record<string, string>)['author'] ?? ''
-    const corr = (saved as Record<string, string>)['author'] ?? ''
+    const orig = (original as Record<string, unknown>)['author'] as string ?? ''
+    const corr = (saved as Record<string, unknown>)['author'] as string ?? ''
 
     if (!orig || !corr || orig === corr) return
 
