@@ -28,7 +28,7 @@ function levenshtein(a: string, b: string): number {
 export function useUserPreferences() {
   function recordCorrections(
     original: Partial<BookMetadata>,
-    saved: Omit<BookMetadata, 'id'>
+    saved: Omit<BookMetadata, 'id' | 'sessionId'>
   ) {
     const orig = (original as Record<string, string>)['author'] ?? ''
     const corr = (saved as Record<string, string>)['author'] ?? ''

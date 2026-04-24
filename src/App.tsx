@@ -53,7 +53,6 @@ function App() {
   const {
     sessions,
     currentSession,
-    currentSessionId,
     setCurrentSession,
     createSession,
     renameSession,

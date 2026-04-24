@@ -64,7 +64,7 @@ describe('exportSessionsToCsv', () => {
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
       const el = originalCreateElement(tag)
       if (tag === 'a') {
-        vi.spyOn(el as HTMLAnchorElement, 'click').mockImplementation(clickSpy)
+        vi.spyOn(el as HTMLAnchorElement, 'click').mockImplementation(clickSpy as () => void)
       }
       return el
     })

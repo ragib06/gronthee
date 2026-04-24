@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSessions, toSlug, DEFAULT_SESSION } from './useSessions'
 
@@ -68,7 +68,7 @@ describe('useSessions', () => {
 
   it('createSession happy path', () => {
     const { result } = renderHook(() => useSessions())
-    let created: ReturnType<typeof result.current.createSession>
+    let created: ReturnType<typeof result.current.createSession> = null
     act(() => { created = result.current.createSession('Science') })
     expect(created).not.toBeNull()
     expect(result.current.sessions).toHaveLength(2)
@@ -80,7 +80,7 @@ describe('useSessions', () => {
   it('createSession rejects duplicate name (case-insensitive)', () => {
     const { result } = renderHook(() => useSessions())
     act(() => { result.current.createSession('Science') })
-    let duplicate: ReturnType<typeof result.current.createSession>
+    let duplicate: ReturnType<typeof result.current.createSession> = null
     act(() => { duplicate = result.current.createSession('SCIENCE') })
     expect(duplicate).toBeNull()
     expect(result.current.sessions).toHaveLength(2)
@@ -89,7 +89,7 @@ describe('useSessions', () => {
   it('createSession rejects at 50-session cap', () => {
     seedSessions(50)
     const { result } = renderHook(() => useSessions())
-    let extra: ReturnType<typeof result.current.createSession>
+    let extra: ReturnType<typeof result.current.createSession> = null
     act(() => { extra = result.current.createSession('New One') })
     expect(extra).toBeNull()
     expect(result.current.sessions).toHaveLength(50)
@@ -105,7 +105,7 @@ describe('useSessions', () => {
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(current))
 
     const { result: result2 } = renderHook(() => useSessions())
-    let s: ReturnType<typeof result2.current.createSession>
+    let s: ReturnType<typeof result2.current.createSession> = null
     act(() => { s = result2.current.createSession('another shelf extra') })
     // Should succeed (different name, slug may collide but gets suffix)
     expect(s).not.toBeNull()
