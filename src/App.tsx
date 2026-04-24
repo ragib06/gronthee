@@ -6,6 +6,7 @@ import BookEditorPage from '@/components/editor/BookEditorPage'
 import HistoryPage from '@/components/history/HistoryPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
 import { useBookHistory } from '@/hooks/useBookHistory'
+import { useSessions } from '@/hooks/useSessions'
 import { getDefaultModel, resolveModel } from '@/config/ai-config'
 import type { BookMetadata, FieldConfidence, SelectedModel } from '@/types'
 
@@ -48,7 +49,20 @@ function App() {
     setSelectedModel(model)
   }
   const [username, setUsername] = useState<string>(() => localStorage.getItem(USERNAME_KEY) ?? '')
-  const { books, addBook, updateBook, deleteBook } = useBookHistory()
+  const { books, addBook, updateBook, deleteBook, reassignBooksToSession } = useBookHistory()
+  const {
+    sessions,
+    currentSession,
+    setCurrentSession,
+    createSession,
+    renameSession,
+    deleteSession,
+  } = useSessions()
+
+  function handleDeleteSession(id: string) {
+    reassignBooksToSession(id, 'default')
+    deleteSession(id)
+  }
 
   const navigate: NavigateFn = (newPage, params = {}) => {
     setEditorParams(params)
@@ -74,6 +88,13 @@ function App() {
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
             username={username}
+            sessions={sessions}
+            currentSession={currentSession}
+            books={books}
+            onSelectSession={setCurrentSession}
+            onCreateSession={createSession}
+            onRenameSession={renameSession}
+            onDeleteSession={handleDeleteSession}
           />
         )}
         {page === 'editor' && (
@@ -84,6 +105,7 @@ function App() {
             pendingMetadata={editorParams.pendingMetadata}
             pendingImages={editorParams.pendingImages ?? []}
             pendingConfidence={editorParams.pendingConfidence}
+            currentSession={currentSession}
             onAdd={addBook}
             onUpdate={updateBook}
           />
@@ -93,6 +115,7 @@ function App() {
             key="history"
             navigate={navigate}
             books={books}
+            sessions={sessions}
             onDelete={deleteBook}
             username={username}
             flashMessage={editorParams.flashMessage}

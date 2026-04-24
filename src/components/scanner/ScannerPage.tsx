@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { ScanLine } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata, SelectedModel } from '@/types'
+import type { BookMetadata, Session, SelectedModel } from '@/types'
+import SessionSelector from '@/components/shared/SessionSelector'
 import { extractBookMetadata } from '@/services/ai'
 import { dataUrlToBase64Image, compressImageForApi } from '@/utils/imageToBase64'
 import { loadPreferences, applyPreferences } from '@/utils/applyPreferences'
@@ -19,6 +20,13 @@ interface ScannerPageProps {
   selectedModel: SelectedModel
   onModelChange: (m: SelectedModel) => void
   username: string
+  sessions: Session[]
+  currentSession: Session
+  books: BookMetadata[]
+  onSelectSession: (id: string) => void
+  onCreateSession: (name: string) => Session | null
+  onRenameSession: (id: string, newName: string) => void
+  onDeleteSession: (id: string) => void
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -30,7 +38,19 @@ function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-export default function ScannerPage({ navigate, selectedModel, onModelChange, username }: ScannerPageProps) {
+export default function ScannerPage({
+  navigate,
+  selectedModel,
+  onModelChange,
+  username,
+  sessions,
+  currentSession,
+  books,
+  onSelectSession,
+  onCreateSession,
+  onRenameSession,
+  onDeleteSession,
+}: ScannerPageProps) {
   const [tab, setTab] = useState<'upload' | 'webcam'>(() => {
     return (localStorage.getItem('scanner-tab') as 'upload' | 'webcam') ?? 'upload'
   })
@@ -123,6 +143,18 @@ export default function ScannerPage({ navigate, selectedModel, onModelChange, us
         <div>
           <p className="text-sm text-gray-400 mb-0.5">Welcome, {username}</p>
           <h1 className="text-2xl font-semibold text-gray-900">Scan a Book</h1>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-xs text-gray-400">Session:</span>
+            <SessionSelector
+              sessions={sessions}
+              currentSession={currentSession}
+              books={books}
+              onSelect={onSelectSession}
+              onCreate={onCreateSession}
+              onRename={onRenameSession}
+              onDelete={onDeleteSession}
+            />
+          </div>
         </div>
         <ModelSelector selectedModel={selectedModel} onChange={onModelChange} />
       </div>

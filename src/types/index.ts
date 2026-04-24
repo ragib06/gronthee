@@ -1,3 +1,9 @@
+export interface Session {
+  id: string        // URL-safe slug; 'default' for the built-in session
+  name: string      // Display name (user-facing)
+  createdAt: string // ISO 8601
+}
+
 export type CollectionCode =
   | 'ART' | 'BIO' | 'CHI' | 'COLL' | 'CRI'
   | 'FIC' | 'HIST' | 'MYTH' | 'MISC' | 'NFIC'
@@ -10,6 +16,7 @@ export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
 export interface BookMetadata {
   id: string
+  sessionId: string             // session this book belongs to; 'default' for legacy books
   title: string
   subTitle: string
   otherTitle: string
@@ -59,8 +66,8 @@ export interface AIRawResponse {
   summary: string
 }
 
-// After code mapping — ready to fill BookMetadata (minus id and scanDate)
-export type RawBookMetadata = Omit<BookMetadata, 'id' | 'scanDate'>
+// After code mapping — ready to fill BookMetadata (minus id, scanDate, sessionId)
+export type RawBookMetadata = Omit<BookMetadata, 'id' | 'scanDate' | 'sessionId'>
 
 export interface ModelDefinition {
   id: string

@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { BookOpen, Download, Search } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata } from '@/types'
-import { exportToCsv, defaultCsvFilename } from '@/services/csv'
+import type { BookMetadata, Session } from '@/types'
 import BookCard from './BookCard'
 import BookDetailModal from './BookDetailModal'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import ExportDialog from '@/components/shared/ExportDialog'
+import ExportSessionDialog from '@/components/shared/ExportSessionDialog'
 import SuccessBanner from '@/components/shared/SuccessBanner'
 
 type SortKey = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc'
@@ -15,6 +14,7 @@ type SortKey = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc'
 interface HistoryPageProps {
   navigate: NavigateFn
   books: BookMetadata[]
+  sessions: Session[]
   onDelete: (id: string) => void
   username: string
   flashMessage?: string
@@ -45,13 +45,13 @@ function sortBooks(books: BookMetadata[], sort: SortKey): BookMetadata[] {
   })
 }
 
-export default function HistoryPage({ navigate, books, onDelete, username, flashMessage }: HistoryPageProps) {
+export default function HistoryPage({ navigate, books, sessions, onDelete, username, flashMessage }: HistoryPageProps) {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('date-desc')
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [selectedBook, setSelectedBook] = useState<BookMetadata | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
-  const [exportFilename, setExportFilename] = useState('')
+  const [sessionFilter, setSessionFilter] = useState<string | null>(null) // null = All
   const [banner, setBanner] = useState(flashMessage ?? '')
 
   useEffect(() => {
@@ -64,8 +64,10 @@ export default function HistoryPage({ navigate, books, onDelete, username, flash
     return () => clearTimeout(t)
   }, [flashMessage])
 
+  const visibleBooks = sessionFilter ? books.filter(b => b.sessionId === sessionFilter) : books
+
   const filtered = sortBooks(
-    books.filter(b => {
+    visibleBooks.filter(b => {
       const q = search.toLowerCase()
       return b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)
     }),
@@ -106,13 +108,42 @@ export default function HistoryPage({ navigate, books, onDelete, username, flash
         </h1>
         <button
           className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-          onClick={() => { setExportFilename(defaultCsvFilename(username)); setExportOpen(true) }}
+          onClick={() => setExportOpen(true)}
           disabled={books.length === 0}
         >
           <Download size={15} />
           Export CSV
         </button>
       </div>
+
+      {/* Session filter chips */}
+      {sessions.length > 1 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={() => setSessionFilter(null)}
+            className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              sessionFilter === null
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          {sessions.slice(0, 15).map(session => (
+            <button
+              key={session.id}
+              onClick={() => setSessionFilter(session.id)}
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                sessionFilter === session.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {session.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Search + Sort */}
       <div className="flex gap-3 mb-6">
@@ -181,10 +212,11 @@ export default function HistoryPage({ navigate, books, onDelete, username, flash
       )}
 
       {/* Export dialog */}
-      <ExportDialog
+      <ExportSessionDialog
         open={exportOpen}
-        defaultFilename={exportFilename}
-        onExport={filename => { exportToCsv(books, filename); setExportOpen(false) }}
+        sessions={sessions}
+        books={books}
+        username={username}
         onCancel={() => setExportOpen(false)}
       />
 
