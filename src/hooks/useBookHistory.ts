@@ -5,7 +5,9 @@ const STORAGE_KEY = 'gronthee:books'
 
 function load(): BookMetadata[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as BookMetadata[]
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as BookMetadata[]
+    // Migration: assign 'default' sessionId to any book that predates sessions
+    return raw.map(b => b.sessionId ? b : { ...b, sessionId: 'default' })
   } catch {
     return []
   }
@@ -30,5 +32,13 @@ export function useBookHistory() {
     setBooks(prev => prev.filter(b => b.id !== id))
   }
 
-  return { books, addBook, updateBook, deleteBook }
+  function getBooksBySession(sessionId: string): BookMetadata[] {
+    return books.filter(b => b.sessionId === sessionId)
+  }
+
+  function reassignBooksToSession(fromId: string, toId: string): void {
+    setBooks(prev => prev.map(b => b.sessionId === fromId ? { ...b, sessionId: toId } : b))
+  }
+
+  return { books, addBook, updateBook, deleteBook, getBooksBySession, reassignBooksToSession }
 }

@@ -9,7 +9,13 @@ interface AppShellProps {
   children: ReactNode
 }
 
-const STORAGE_KEYS = ['gronthee-username', 'gronthee:books', 'gronthee:preferences']
+const STORAGE_KEYS = [
+  'gronthee-username',
+  'gronthee:books',
+  'gronthee:preferences',
+  'gronthee:sessions',
+  'gronthee:currentSessionId',
+]
 
 export default function AppShell({ currentPage, navigate, children }: AppShellProps) {
   const [resetOpen, setResetOpen] = useState(false)

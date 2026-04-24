@@ -9,7 +9,8 @@ interface BookFormProps {
   initialValues: Partial<BookMetadata>
   scanDate: string
   confidence?: FieldConfidence
-  onSave: (data: Omit<BookMetadata, 'id'>) => void
+  sessionName?: string
+  onSave: (data: Omit<BookMetadata, 'id' | 'sessionId'>) => void
   onCancel: () => void
 }
 
@@ -119,7 +120,7 @@ function validate(form: FormState): Errors {
   return errors
 }
 
-export default function BookForm({ initialValues, scanDate, confidence = {}, onSave, onCancel }: BookFormProps) {
+export default function BookForm({ initialValues, scanDate, confidence = {}, sessionName, onSave, onCancel }: BookFormProps) {
   function conf(field: keyof FormState): 'very low' | 'low' | 'high' | undefined {
     const val = form[field]
     if (!val || val === 'N/A') return undefined
@@ -145,7 +146,7 @@ export default function BookForm({ initialValues, scanDate, confidence = {}, onS
       return
     }
     setSubmitAttempted(false)
-    const data: Omit<BookMetadata, 'id'> = {
+    const data: Omit<BookMetadata, 'id' | 'sessionId'> = {
       title: form.title.trim(),
       subTitle: form.subTitle.trim(),
       otherTitle: form.otherTitle.trim(),
@@ -273,6 +274,12 @@ export default function BookForm({ initialValues, scanDate, confidence = {}, onS
           Save Book
         </button>
       </div>
+      {sessionName && (
+        <div className="flex justify-end items-center gap-1.5 mt-2">
+          <span className="text-xs text-gray-400">Active session:</span>
+          <span className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">{sessionName}</span>
+        </div>
+      )}
     </div>
   )
 }

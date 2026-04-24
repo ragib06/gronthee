@@ -272,8 +272,15 @@ export type ItemTypeCode = 'BK' | 'ASB' | 'RB' | 'REF' | 'MG';
 
 export type AIProvider = 'anthropic' | 'openai' | 'gemini';
 
+export interface Session {
+  id: string;        // URL-safe slug; 'default' for the built-in session
+  name: string;      // Display name (user-facing)
+  createdAt: string; // ISO 8601
+}
+
 export interface BookMetadata {
   id: string;                  // uuid generated at save time via generateId() (falls back to Math.random for non-secure HTTP contexts)
+  sessionId: string;           // session this book belongs to; 'default' for legacy books
   title: string;
   subTitle: string;
   otherTitle: string;
@@ -366,10 +373,12 @@ export interface Base64Image {
 
 | Key | Type | Description |
 |---|---|---|
-| `gronthee:books` | `BookMetadata[]` | All saved book records |
+| `gronthee:books` | `BookMetadata[]` | All saved book records (each has `sessionId`) |
 | `gronthee:preferences` | `UserPreferences` | Per-field correction maps |
 | `gronthee-username` | `string` | Username entered at first launch |
 | `gronthee:selectedModel` | `{provider, modelId}` | Last-used AI provider and model (API key excluded) |
+| `gronthee:sessions` | `Session[]` | All named sessions (always includes Default) |
+| `gronthee:currentSessionId` | `string` | Active session id; falls back to `'default'` if missing |
 
 ---
 
@@ -561,7 +570,54 @@ Phase 2 — UI Components   All pages and components with static/mock data
 Phase 3 — AI Integration  Provider adapters, prompt, scan flow wired end-to-end
 Phase 4 — Data Layer      localStorage persistence, preferences, CSV export
 Phase 5 — Polish          Responsiveness, accessibility, error handling, animations
+Phase 6 — Sessions        Named session management (implemented 2026-04-23)
 ```
+
+---
+
+## 9. Phase 6 — Sessions (implemented 2026-04-23)
+
+**Goal**: Allow users to organise scanned books into named sessions with per-session CSV export.
+
+### New files
+| File | Purpose |
+|---|---|
+| `src/hooks/useSessions.ts` | Session CRUD, slug generation, localStorage persistence, 50-session cap |
+| `src/components/shared/SessionSelector.tsx` | Floating dropdown: list, create, inline rename, delete trigger |
+| `src/components/shared/DeleteSessionDialog.tsx` | Confirm delete; shows book count; reassigns books to Default |
+| `src/components/shared/ExportSessionDialog.tsx` | Per-row Export button per session; no checkboxes; Cancel-only footer |
+| `src/hooks/useSessions.test.ts` | Unit tests for useSessions hook + toSlug utility |
+| `src/hooks/useBookHistory.test.ts` | Unit tests for migration and sessionId handling |
+| `src/services/csv.test.ts` | Unit tests for sessionCsvFilename and exportSessionsToCsv |
+| `src/components/shared/SessionSelector.test.tsx` | Component tests |
+| `src/components/shared/DeleteSessionDialog.test.tsx` | Component tests |
+| `src/components/shared/ExportSessionDialog.test.tsx` | Component tests |
+| `src/components/history/HistoryPage.test.tsx` | Session filter chip tests |
+| `src/test/setup.ts` | Vitest + RTL setup |
+| `src/test/integration/sessions-backward-compat.test.tsx` | Backward compat + session persistence tests |
+
+### Modified files
+| File | Change |
+|---|---|
+| `src/types/index.ts` | Added `Session` interface; added `sessionId` to `BookMetadata`; updated `RawBookMetadata` to omit `sessionId` |
+| `src/hooks/useBookHistory.ts` | Migration on load; added `reassignBooksToSession()`, `getBooksBySession()` |
+| `src/services/csv.ts` | Added `sessionCsvFilename()`, `exportSessionsToCsv()` |
+| `src/components/editor/BookForm.tsx` | `onSave` type excludes `sessionId` |
+| `src/components/editor/BookEditorPage.tsx` | Accepts `currentSessionId`; attaches it on add; preserves it on update |
+| `src/components/scanner/ScannerPage.tsx` | Session badge + `SessionSelector` below heading |
+| `src/components/history/HistoryPage.tsx` | Session filter chips; replaced `ExportDialog` with `ExportSessionDialog` |
+| `src/components/layout/AppShell.tsx` | Session keys added to reset list |
+| `src/App.tsx` | Wires `useSessions`; passes session props to all pages; `handleDeleteSession` combines reassign + delete |
+| `vite.config.ts` | Added Vitest config block |
+| `package.json` | Added `test`, `test:ui`, `test:run` scripts; added Vitest + RTL devDependencies |
+
+### Design decisions
+- **Flat storage**: `sessionId` on each book, not books nested inside sessions — minimal migration, non-breaking
+- **Default session**: `id = 'default'`; always present; cannot be renamed or deleted; existing books auto-migrated to it
+- **50-session cap**: Create input disabled with tooltip when at limit
+- **Session delete**: Books never orphaned — always moved to Default; guarded at hook level (`id === 'default'` is a no-op)
+- **Export**: Per-row Export button in the dialog; each click downloads that session's CSV immediately without closing the dialog. No checkboxes or bulk-select. Downloads are staggered 300 ms apart (browser blocks simultaneous programmatic clicks). Filename uses session name slug: `gronthee-<username>-<sessionSlug>-<datetime>.csv`
+- **Active session label**: On the Review & Save page (new book only), "Active session: `<name>`" is shown right-aligned below the Save button so users can confirm the target session before saving
 
 ### Critical Files (must exist before dependent work can proceed)
 

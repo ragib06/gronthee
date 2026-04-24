@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { ChevronLeft, ImageOff, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata, FieldConfidence } from '@/types'
+import type { BookMetadata, FieldConfidence, Session } from '@/types'
 import { useUserPreferences } from '@/hooks/useUserPreferences'
 import BookForm from './BookForm'
 
@@ -12,6 +12,7 @@ interface BookEditorPageProps {
   pendingMetadata?: Partial<BookMetadata>
   pendingImages: string[]
   pendingConfidence?: FieldConfidence
+  currentSession: Session
   onAdd: (book: BookMetadata) => void
   onUpdate: (book: BookMetadata) => void
 }
@@ -22,6 +23,7 @@ export default function BookEditorPage({
   pendingMetadata,
   pendingImages,
   pendingConfidence,
+  currentSession,
   onAdd,
   onUpdate,
 }: BookEditorPageProps) {
@@ -71,12 +73,12 @@ export default function BookEditorPage({
   const scanDate = book?.scanDate ?? new Date().toISOString().slice(0, 10)
   const { recordCorrections } = useUserPreferences()
 
-  function handleSave(data: Omit<BookMetadata, 'id'>) {
+  function handleSave(data: Omit<BookMetadata, 'id' | 'sessionId'>) {
     if (isEdit && book) {
-      onUpdate({ ...data, id: book.id, scanDate })
+      onUpdate({ ...data, id: book.id, scanDate, sessionId: book.sessionId })
     } else {
       if (pendingMetadata) recordCorrections(pendingMetadata, data)
-      onAdd({ ...data, id: generateId(), scanDate })
+      onAdd({ ...data, id: generateId(), scanDate, sessionId: currentSession.id })
     }
     navigate('history', { flashMessage: isEdit ? 'Book updated successfully.' : 'Book saved successfully.' })
   }
@@ -144,6 +146,7 @@ export default function BookEditorPage({
             initialValues={initialValues}
             scanDate={scanDate}
             confidence={isEdit ? undefined : pendingConfidence}
+            sessionName={isEdit ? undefined : currentSession.name}
             onSave={handleSave}
             onCancel={handleCancel}
           />

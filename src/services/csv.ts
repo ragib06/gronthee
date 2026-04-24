@@ -1,4 +1,4 @@
-import type { BookMetadata } from '@/types'
+import type { BookMetadata, Session } from '@/types'
 
 const HEADERS = [
   'ISBN',
@@ -97,14 +97,29 @@ function toRow(book: BookMetadata): string[] {
   ]
 }
 
-export function defaultCsvFilename(username: string): string {
+function datetimeStamp(): string {
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
-  const datetime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
-  return `gronthee-${username}-${datetime}.csv`
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
 }
 
-export function exportToCsv(books: BookMetadata[], filename: string): void {
+function nameToSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-') || 'session'
+}
+
+export function defaultCsvFilename(username: string): string {
+  return `gronthee-${username}-${datetimeStamp()}.csv`
+}
+
+export function sessionCsvFilename(username: string, sessionName: string): string {
+  return `gronthee-${username}-${nameToSlug(sessionName)}-${datetimeStamp()}.csv`
+}
+
+function downloadCsv(books: BookMetadata[], filename: string): void {
   const rows = [
     HEADERS.map(escape).join(','),
     ...books.map(b => toRow(b).map(escape).join(',')),
@@ -114,6 +129,27 @@ export function exportToCsv(books: BookMetadata[], filename: string): void {
   const a = document.createElement('a')
   a.href = url
   a.download = filename.endsWith('.csv') ? filename : `${filename}.csv`
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+export function exportToCsv(books: BookMetadata[], filename: string): void {
+  downloadCsv(books, filename)
+}
+
+export function exportSessionsToCsv(
+  sessions: Session[],
+  books: BookMetadata[],
+  username: string,
+): void {
+  // Stagger downloads by 300 ms each — browsers silently drop simultaneous
+  // programmatic clicks so only the first file would otherwise be saved.
+  sessions.forEach((session, i) => {
+    setTimeout(() => {
+      const sessionBooks = books.filter(b => b.sessionId === session.id)
+      downloadCsv(sessionBooks, sessionCsvFilename(username, session.name))
+    }, i * 300)
+  })
 }
