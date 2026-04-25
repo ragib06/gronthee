@@ -377,8 +377,9 @@ export interface Base64Image {
 | `gronthee:preferences` | `UserPreferences` | Per-field correction maps |
 | `gronthee-username` | `string` | Username entered at first launch |
 | `gronthee:selectedModel` | `{provider, modelId}` | Last-used AI provider and model (API key excluded) |
-| `gronthee:sessions` | `Session[]` | All named sessions (always includes Default) |
+| `gronthee:sessions` | `Session[]` | All named sessions (always includes Default; each has `configId`) |
 | `gronthee:currentSessionId` | `string` | Active session id; falls back to `'default'` if missing |
+| `gronthee:exportConfigs` | `ExportConfig[]` | User-created export configs (Dishari built-in never persisted here) |
 
 ---
 
@@ -688,3 +689,66 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 ### Tests
 - `src/services/csv.test.ts` — default export excludes R&D headers; `includeRnd=true` appends the three columns with correct encoding; empty cells for pre-feature books.
 - `src/components/shared/ExportSessionDialog.test.tsx` — updated existing tests for the new 4th argument; added coverage for checking the R&D box and confirming `includeRnd=true` flows through.
+
+---
+
+## 12. Phase 9 — Export Configs (complete; all 7 phases of plan_export_configs.md landed 2026-04-25)
+
+**Goal**: Replace the single hard-coded CSV export shape with user-defined configs. Each session points to a config via `configId`; the bundled `dishari` config preserves backward compatibility byte-for-byte.
+
+**Status**: All 7 phases of `temp_plans/plan_export_configs.md` landed.
+- Phase 1 — data model + Dishari bundle
+- Phase 2 — `useExportConfigs` hook + config-driven `csv.ts` (Dishari output is byte-equivalent to pre-feature)
+- Phase 3 — Configs page (CRUD UI), card list, full-page editor with reorderable column list, import dialog scaffold
+- Phase 4 — Session ↔ config wiring: new `CreateSessionDialog` (name + config dropdown), `SessionSelector` shows config name as a subtitle and opens the dialog from a "New session" button instead of the old inline input, deleting a config reassigns dependent sessions to `'dishari'` before removal
+- Phase 5 — Export wiring: `ExportSessionDialog` now resolves each session's config via the `getConfig` callback threaded down from `App` → `HistoryPage`; per-session config name is shown as a subtitle in the dialog; the R&D checkbox is preserved and continues to append `Book ID, Images, Prompt Output` and the `gronthee-rnd-` filename prefix regardless of which config the session uses
+- Phase 6 — Share & Import polish: `parseImported` error messages now user-friendly with Gronthee-branded prefix; Share test added to `ConfigsPage.test.tsx`; integration test `export-configs-backward-compat.test.tsx` covers migration, config lookup, custom-config export, config deletion cascade, and R&D flag orthogonality
+- Phase 7 — Docs cleanup: REQUIREMENTS.md CSV Export section rewritten around per-session config-driven export; localStorage key table updated with `gronthee:exportConfigs`
+
+### New files (cumulative through Phase 6)
+| File | Purpose |
+|---|---|
+| `src/config/dishari-export-config.json` | Bundled Dishari config (built-in, id reserved) |
+| `src/hooks/useExportConfigs.ts` | Config CRUD; merges bundled built-in with user configs |
+| `src/services/exportConfig.ts` | `validateConfig`, `parseImported`, `serializeForShare`, `DISHARI_CONFIG`, `ALL_BOOK_FIELDS` |
+| `src/utils/slug.ts` | Shared slugifier (lifted from `useSessions`) |
+| `src/components/configs/ConfigsPage.tsx` | Top-level Configs page; routes between list and editor |
+| `src/components/configs/ConfigCard.tsx` | Card per config; hides Edit/Delete on the built-in |
+| `src/components/configs/ConfigEditor.tsx` | Create/edit form with name, description, ordered column list |
+| `src/components/configs/ColumnRow.tsx` | One column row: header input, type select, field/value control, drag handle, up/down buttons, delete |
+| `src/components/configs/ImportConfigDialog.tsx` | File-input dialog with preview, rename, validation error surface |
+| `src/hooks/useExportConfigs.test.ts` | Hook tests |
+| `src/services/exportConfig.test.ts` | Validation + import/share tests |
+| `src/components/configs/ConfigsPage.test.tsx` | List + dialog interactions + Share download test (Phase 6) |
+| `src/components/configs/ConfigEditor.test.tsx` | Form + validation + reorder tests |
+| `src/components/configs/ImportConfigDialog.test.tsx` | Parse/validate/preview/import flow |
+| `src/components/shared/CreateSessionDialog.tsx` | Modal dialog: name input + config dropdown; replaces the inline new-session input |
+| `src/components/shared/CreateSessionDialog.test.tsx` | Tests for the create-session dialog |
+| `src/test/integration/export-configs-backward-compat.test.tsx` | Integration: migration, config lookup, custom export, config-deletion cascade, R&D flag (Phase 6) |
+
+### Modified files (cumulative through Phase 6)
+| File | Change |
+|---|---|
+| `src/types/index.ts` | Added `ExportConfig`, `ExportColumn`, `BookField`, `ExportColumnType`; added `configId: string` to `Session` |
+| `src/hooks/useSessions.ts` | Migration upgrades pre-feature sessions to `configId: 'dishari'` and persists; `createSession(name, configId?)` accepts optional configId, defaulting to `'dishari'`; new `reassignSessionsConfig(from, to)` for use when a config is deleted |
+| `src/services/csv.ts` | Config-driven: `exportToCsv(books, filename, config, includeRnd?)` and `exportSessionsToCsv(sessions, books, username, resolveConfig, includeRnd?)`; Dishari output remains byte-equivalent |
+| `src/components/shared/ExportSessionDialog.tsx` | Phase 5: takes a `getConfig` prop and threads it as the `resolveConfig` callback so each session exports with its own config; shows config name as a subtitle in each row; R&D checkbox behaviour unchanged |
+| `src/components/history/HistoryPage.tsx` | Phase 5: accepts `getConfig` prop and threads it down to `ExportSessionDialog` |
+| `src/components/history/HistoryPage.test.tsx` | Phase 5: tests pass a `getConfig` mock |
+| `src/components/shared/ExportSessionDialog.test.tsx` | Phase 5: added config-subtitle assertion and per-row export-with-correct-getConfig test; existing R&D checkbox tests continue to pass with the new signature |
+| `src/components/shared/SessionSelector.tsx` | Replaced inline new-session input with a "New session" button that opens `CreateSessionDialog`; shows config name as a subtitle on each session row; new `configs` and `getConfig` props |
+| `src/components/shared/SessionSelector.test.tsx` | Updated for the dialog-based create flow and config-subtitle assertion |
+| `src/components/scanner/ScannerPage.tsx` | Threads `configs` and `getConfig` to `SessionSelector`; `onCreateSession` now takes `(name, configId)`; shows active session's config name inline next to session name in header |
+| `src/components/layout/Header.tsx` | New `Configs` nav item alongside Scan and History |
+| `src/components/layout/AppShell.tsx` | `gronthee:exportConfigs` added to the reset-all key list |
+| `src/App.tsx` | Wired `useExportConfigs`; routes the new `'configs'` page; `handleDeleteConfig` reassigns dependent sessions to `'dishari'` before deletion; threads `getConfig` to `HistoryPage` |
+
+### Design decisions (carried over from `temp_plans/plan_export_configs.md`)
+- **Dishari built-in is read-only**: cannot be edited or deleted; users clone it as a starting point for new configs. The bundled JSON is the single source of truth — never persisted to localStorage.
+- **R&D columns stay orthogonal**: the "Include R&D columns" checkbox continues to append `Book ID`, `Images`, `Prompt Output` after whatever columns the session's config produces, regardless of which config is selected. R&D fields are intentionally excluded from `BookField` so they cannot leak into a Mapped column.
+- **Session → config by id (not inline)**: editing a config affects every session that references it (intuitive: typo fixes propagate). Deleting a config reassigns dependent sessions to Dishari (mirror of the books-fall-back-to-Default-on-session-delete pattern).
+- **Slug + collision handling**: ids are URL-safe slugs from name; collisions append a random 4-char suffix.
+- **Validation cap**: max 200 columns per config; max 200-char header per column; max name length 80 (UI-enforced) — keeps imports bounded.
+- **Imports always become user configs**: `parseImported` strips `builtIn` so a shared file can never overwrite the bundled Dishari record.
+- **DnD with keyboard fallback**: HTML5 drag/drop powers reordering; up/down arrow buttons cover keyboard users without pulling in a DnD library.
+- **Friendly import errors (Phase 6)**: `parseImported` wraps validation errors with a Gronthee-branded prefix ("This file isn't a valid Gronthee export config — …") so users get actionable messages rather than internal technical strings.

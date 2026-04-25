@@ -15,6 +15,7 @@ const STORAGE_KEYS = [
   'gronthee:preferences',
   'gronthee:sessions',
   'gronthee:currentSessionId',
+  'gronthee:exportConfigs',
 ]
 
 export default function AppShell({ currentPage, navigate, children }: AppShellProps) {

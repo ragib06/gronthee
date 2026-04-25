@@ -18,7 +18,7 @@ export default function Header({ currentPage, navigate }: HeaderProps) {
           Gronthee
         </button>
         <nav className="flex items-center gap-6">
-          {(['scan', 'history'] as Page[]).map(p => (
+          {(['scan', 'history', 'configs'] as Page[]).map(p => (
             <button
               key={p}
               onClick={() => navigate(p)}
@@ -28,7 +28,7 @@ export default function Header({ currentPage, navigate }: HeaderProps) {
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              {p === 'scan' ? 'Scan' : 'History'}
+              {p === 'scan' ? 'Scan' : p === 'history' ? 'History' : 'Configs'}
             </button>
           ))}
         </nav>

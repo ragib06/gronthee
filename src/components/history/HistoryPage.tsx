@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { BookOpen, Download, Search } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata, Session } from '@/types'
+import type { BookMetadata, ExportConfig, Session } from '@/types'
 import BookCard from './BookCard'
 import BookDetailModal from './BookDetailModal'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
@@ -15,6 +15,7 @@ interface HistoryPageProps {
   navigate: NavigateFn
   books: BookMetadata[]
   sessions: Session[]
+  getConfig: (id: string) => ExportConfig
   onDelete: (id: string) => void
   username: string
   flashMessage?: string
@@ -45,7 +46,7 @@ function sortBooks(books: BookMetadata[], sort: SortKey): BookMetadata[] {
   })
 }
 
-export default function HistoryPage({ navigate, books, sessions, onDelete, username, flashMessage }: HistoryPageProps) {
+export default function HistoryPage({ navigate, books, sessions, getConfig, onDelete, username, flashMessage }: HistoryPageProps) {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('date-desc')
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -217,6 +218,7 @@ export default function HistoryPage({ navigate, books, sessions, onDelete, usern
         sessions={sessions}
         books={books}
         username={username}
+        getConfig={getConfig}
         onCancel={() => setExportOpen(false)}
       />
 

@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ExportSessionDialog from './ExportSessionDialog'
-import type { BookMetadata, Session } from '@/types'
+import { DISHARI_CONFIG } from '@/services/exportConfig'
+import type { BookMetadata, ExportConfig, Session } from '@/types'
 
 // Mock the CSV service — download logic is tested in csv.test.ts
 vi.mock('@/services/csv', () => ({
@@ -10,9 +11,20 @@ vi.mock('@/services/csv', () => ({
   sessionCsvFilename: vi.fn(),
 }))
 
-function makeSession(id: string, name: string): Session {
-  return { id, name, createdAt: new Date().toISOString() }
+function makeSession(id: string, name: string, configId = 'dishari'): Session {
+  return { id, name, createdAt: new Date().toISOString(), configId }
 }
+
+const customConfig: ExportConfig = {
+  id: 'library-v2',
+  name: 'Library v2',
+  columns: [{ type: 'mapped', header: 'Title', field: 'title' }],
+  createdAt: '2026-04-24T00:00:00.000Z',
+  updatedAt: '2026-04-24T00:00:00.000Z',
+}
+
+const getConfig = (id: string): ExportConfig =>
+  id === 'library-v2' ? customConfig : DISHARI_CONFIG
 
 function makeBook(sessionId: string): BookMetadata {
   return {
@@ -43,6 +55,7 @@ function renderDialog(open = true, sessionList = sessions, bookList = books) {
       sessions={sessionList}
       books={bookList}
       username="ragib"
+      getConfig={getConfig}
       onCancel={vi.fn()}
     />
   )
@@ -86,7 +99,9 @@ describe('ExportSessionDialog', () => {
     renderDialog()
     const exportBtns = screen.getAllByRole('button', { name: /export/i })
     await userEvent.click(exportBtns[0])
-    expect(exportSessionsToCsv).toHaveBeenCalledWith([sessions[0]], books, 'ragib', false)
+    expect(exportSessionsToCsv).toHaveBeenCalledWith(
+      [sessions[0]], books, 'ragib', expect.any(Function), false,
+    )
   })
 
   it('passes includeRnd=true when the R&D checkbox is checked', async () => {
@@ -95,13 +110,18 @@ describe('ExportSessionDialog', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /r&d columns/i }))
     const exportBtns = screen.getAllByRole('button', { name: /export/i })
     await userEvent.click(exportBtns[0])
-    expect(exportSessionsToCsv).toHaveBeenCalledWith([sessions[0]], books, 'ragib', true)
+    expect(exportSessionsToCsv).toHaveBeenCalledWith(
+      [sessions[0]], books, 'ragib', expect.any(Function), true,
+    )
   })
 
   it('clicking one row Export does not close the dialog', async () => {
     const onCancel = vi.fn()
     render(
-      <ExportSessionDialog open sessions={sessions} books={books} username="ragib" onCancel={onCancel} />
+      <ExportSessionDialog
+        open sessions={sessions} books={books} username="ragib"
+        getConfig={getConfig} onCancel={onCancel}
+      />
     )
     const exportBtns = screen.getAllByRole('button', { name: /export/i })
     await userEvent.click(exportBtns[0])
@@ -116,7 +136,10 @@ describe('ExportSessionDialog', () => {
   it('calls onCancel when Cancel is clicked', async () => {
     const onCancel = vi.fn()
     render(
-      <ExportSessionDialog open sessions={sessions} books={books} username="ragib" onCancel={onCancel} />
+      <ExportSessionDialog
+        open sessions={sessions} books={books} username="ragib"
+        getConfig={getConfig} onCancel={onCancel}
+      />
     )
     await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
     expect(onCancel).toHaveBeenCalledOnce()
@@ -125,9 +148,31 @@ describe('ExportSessionDialog', () => {
   it('calls onCancel on Escape key', async () => {
     const onCancel = vi.fn()
     render(
-      <ExportSessionDialog open sessions={sessions} books={books} username="ragib" onCancel={onCancel} />
+      <ExportSessionDialog
+        open sessions={sessions} books={books} username="ragib"
+        getConfig={getConfig} onCancel={onCancel}
+      />
     )
     await userEvent.keyboard('{Escape}')
     expect(onCancel).toHaveBeenCalledOnce()
+  })
+
+  it('shows the config name as a subtitle for each session', () => {
+    const mixed = [makeSession('default', 'Default'), makeSession('custom', 'Custom Set', 'library-v2')]
+    renderDialog(true, mixed, [makeBook('default'), makeBook('custom')])
+    expect(screen.getByText('Dishari')).toBeTruthy()
+    expect(screen.getByText('Library v2')).toBeTruthy()
+  })
+
+  it('passes the getConfig callback through to exportSessionsToCsv', async () => {
+    const { exportSessionsToCsv } = await import('@/services/csv')
+    const customSession = makeSession('custom', 'Custom Set', 'library-v2')
+    const customBooks = [makeBook('custom')]
+    renderDialog(true, [customSession], customBooks)
+    const exportBtn = screen.getByRole('button', { name: /export/i })
+    await userEvent.click(exportBtn)
+    expect(exportSessionsToCsv).toHaveBeenCalledWith(
+      [customSession], customBooks, 'ragib', getConfig, false,
+    )
   })
 })
