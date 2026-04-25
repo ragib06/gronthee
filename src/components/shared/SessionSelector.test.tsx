@@ -2,10 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SessionSelector from './SessionSelector'
-import type { BookMetadata, Session } from '@/types'
+import { DISHARI_CONFIG } from '@/services/exportConfig'
+import type { BookMetadata, ExportConfig, Session } from '@/types'
 
-function makeSession(id: string, name: string): Session {
-  return { id, name, createdAt: new Date().toISOString() }
+function makeSession(id: string, name: string, configId = 'dishari'): Session {
+  return { id, name, createdAt: new Date().toISOString(), configId }
 }
 
 function makeBook(sessionId: string): BookMetadata {
@@ -19,8 +20,19 @@ function makeBook(sessionId: string): BookMetadata {
   }
 }
 
+const customConfig: ExportConfig = {
+  id: 'library-v2',
+  name: 'Library v2',
+  columns: [{ type: 'mapped', header: 'Title', field: 'title' }],
+  createdAt: '2026-04-25T00:00:00.000Z',
+  updatedAt: '2026-04-25T00:00:00.000Z',
+}
+
+const configs: ExportConfig[] = [DISHARI_CONFIG, customConfig]
+const getConfig = (id: string) => configs.find(c => c.id === id) ?? DISHARI_CONFIG
+
 const defaultSession = makeSession('default', 'Default')
-const sessions = [defaultSession, makeSession('sci-fi', 'Sci-Fi')]
+const sessions = [defaultSession, makeSession('sci-fi', 'Sci-Fi', 'library-v2')]
 const books = [makeBook('default'), makeBook('sci-fi'), makeBook('sci-fi')]
 
 const noop = () => {}
@@ -30,6 +42,8 @@ function renderSelector(overrides: Partial<Parameters<typeof SessionSelector>[0]
     sessions,
     currentSession: defaultSession,
     books,
+    configs,
+    getConfig,
     onSelect: noop,
     onCreate: vi.fn().mockReturnValue(makeSession('new', 'New')),
     onRename: noop,
@@ -47,30 +61,35 @@ async function openDropdown() {
 describe('SessionSelector', () => {
   it('renders current session name on trigger button', () => {
     renderSelector()
-    // Trigger button is the first button; its text includes the session name
     expect(screen.getAllByRole('button')[0].textContent).toContain('Default')
   })
 
   it('renders all session names after opening', async () => {
     renderSelector()
     await openDropdown()
-    // Multiple "Default" texts expected (trigger + list item), use getAllByText
     expect(screen.getAllByText('Default').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Sci-Fi').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("shows each session's config name as a subtitle", async () => {
+    renderSelector()
+    await openDropdown()
+    // Default uses Dishari, Sci-Fi uses Library v2
+    expect(screen.getByText('Dishari')).toBeTruthy()
+    expect(screen.getByText('Library v2')).toBeTruthy()
   })
 
   it('shows correct book count badges', async () => {
     renderSelector()
     await openDropdown()
-    expect(screen.getByText('(1)')).toBeTruthy()  // default has 1
-    expect(screen.getByText('(2)')).toBeTruthy()  // sci-fi has 2
+    expect(screen.getByText('(1)')).toBeTruthy()
+    expect(screen.getByText('(2)')).toBeTruthy()
   })
 
   it('clicking a non-active session calls onSelect', async () => {
     const onSelect = vi.fn()
     renderSelector({ onSelect })
     await openDropdown()
-    // Find and click the Sci-Fi row button inside the dropdown list
     const scifiBtn = screen.getAllByRole('button').find(b =>
       b.textContent?.includes('Sci-Fi') && b.className.includes('flex-1')
     )
@@ -78,34 +97,31 @@ describe('SessionSelector', () => {
     expect(onSelect).toHaveBeenCalledWith('sci-fi')
   })
 
-  it('create button disabled when input is blank', async () => {
+  it('clicking "New session" opens the CreateSessionDialog', async () => {
     renderSelector()
     await openDropdown()
-    expect(screen.getByTitle('Create session')).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: /new session/i }))
+    // The dialog has its own heading and an Export Config select
+    expect(screen.getByRole('heading', { name: /new session/i })).toBeTruthy()
+    expect(screen.getByLabelText(/export config/i)).toBeTruthy()
   })
 
-  it('create button enabled after typing a name', async () => {
-    renderSelector()
-    await openDropdown()
-    await userEvent.type(screen.getByPlaceholderText('New session name…'), 'Poetry')
-    expect(screen.getByTitle('Create session')).not.toBeDisabled()
-  })
-
-  it('clicking create calls onCreate', async () => {
-    const onCreate = vi.fn().mockReturnValue(makeSession('poetry', 'Poetry'))
+  it('submitting the dialog calls onCreate with name and configId, then onSelect', async () => {
+    const onCreate = vi.fn().mockReturnValue(makeSession('poetry', 'Poetry', 'library-v2'))
     const onSelect = vi.fn()
     renderSelector({ onCreate, onSelect })
     await openDropdown()
-    await userEvent.type(screen.getByPlaceholderText('New session name…'), 'Poetry')
-    await userEvent.click(screen.getByTitle('Create session'))
-    expect(onCreate).toHaveBeenCalledWith('Poetry')
+    await userEvent.click(screen.getByRole('button', { name: /new session/i }))
+    await userEvent.type(screen.getByLabelText(/^name$/i), 'Poetry')
+    await userEvent.selectOptions(screen.getByLabelText(/export config/i), 'library-v2')
+    await userEvent.click(screen.getByRole('button', { name: /^create$/i }))
+    expect(onCreate).toHaveBeenCalledWith('Poetry', 'library-v2')
     expect(onSelect).toHaveBeenCalledWith('poetry')
   })
 
   it('pencil icon only exists for non-default sessions', async () => {
     renderSelector()
     await openDropdown()
-    // Only sci-fi (non-default) has the rename button
     const pencilBtns = screen.queryAllByTitle('Rename session')
     expect(pencilBtns.length).toBe(1)
   })
@@ -142,12 +158,12 @@ describe('SessionSelector', () => {
     expect(screen.getByText(/Delete session/)).toBeTruthy()
   })
 
-  it('create input disabled at 50-session cap', async () => {
+  it('"New session" button disabled at 50-session cap', async () => {
     const manySessions = Array.from({ length: 50 }, (_, i) =>
       makeSession(i === 0 ? 'default' : `s${i}`, i === 0 ? 'Default' : `Session ${i}`)
     )
     renderSelector({ sessions: manySessions })
     await openDropdown()
-    expect(screen.getByPlaceholderText('New session name…')).toBeDisabled()
+    expect(screen.getByRole('button', { name: /new session/i })).toBeDisabled()
   })
 })

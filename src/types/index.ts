@@ -2,6 +2,44 @@ export interface Session {
   id: string        // URL-safe slug; 'default' for the built-in session
   name: string      // Display name (user-facing)
   createdAt: string // ISO 8601
+  configId: string  // Export config id used for this session; 'dishari' for the built-in
+}
+
+export type ExportColumnType = 'mapped' | 'constant'
+
+// Whitelist of BookMetadata fields a Mapped column may bind to.
+// R&D-only fields (id, imageUrls, rawAIOutput) are intentionally excluded —
+// those are surfaced exclusively via the R&D checkbox at export time.
+export type BookField =
+  | 'title' | 'subTitle' | 'otherTitle'
+  | 'author' | 'secondAuthor' | 'editor' | 'translator' | 'illustrator'
+  | 'publisher' | 'publishedYear' | 'publishedYearBengali'
+  | 'isbn' | 'category' | 'genre' | 'collection' | 'itemType'
+  | 'pageCount' | 'language' | 'edition' | 'publicationPlace'
+  | 'scanDate' | 'summary'
+
+export interface MappedExportColumn {
+  type: 'mapped'
+  header: string
+  field: BookField
+}
+
+export interface ConstantExportColumn {
+  type: 'constant'
+  header: string
+  value: string
+}
+
+export type ExportColumn = MappedExportColumn | ConstantExportColumn
+
+export interface ExportConfig {
+  id: string                // URL-safe slug; 'dishari' is the reserved built-in id
+  name: string
+  description?: string
+  builtIn?: boolean         // true for the bundled Dishari config
+  columns: ExportColumn[]
+  createdAt: string         // ISO 8601
+  updatedAt: string         // ISO 8601
 }
 
 export type CollectionCode =

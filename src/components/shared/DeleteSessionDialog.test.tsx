@@ -5,7 +5,7 @@ import DeleteSessionDialog from './DeleteSessionDialog'
 import type { Session } from '@/types'
 
 function makeSession(id = 'sci-fi', name = 'Sci-Fi'): Session {
-  return { id, name, createdAt: new Date().toISOString() }
+  return { id, name, createdAt: new Date().toISOString(), configId: 'dishari' }
 }
 
 describe('DeleteSessionDialog', () => {

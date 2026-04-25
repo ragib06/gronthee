@@ -1,30 +1,31 @@
 import { useState, useEffect } from 'react'
 import type { Session } from '@/types'
+import { toSlug } from '@/utils/slug'
+
+export { toSlug }
 
 const SESSIONS_KEY = 'gronthee:sessions'
 const CURRENT_SESSION_KEY = 'gronthee:currentSessionId'
 const MAX_SESSIONS = 50
 
+export const DISHARI_CONFIG_ID = 'dishari'
+
 export const DEFAULT_SESSION: Session = {
   id: 'default',
   name: 'Default',
   createdAt: new Date(0).toISOString(), // stable value; not shown in UI
-}
-
-export function toSlug(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 50)
-  return slug || 'session'
+  configId: DISHARI_CONFIG_ID,
 }
 
 function loadSessions(): Session[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? '[]') as Session[]
-    return Array.isArray(raw) ? raw : []
+    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? '[]') as Partial<Session>[]
+    if (!Array.isArray(raw)) return []
+    // Migration: assign 'dishari' configId to any session that predates export configs
+    return raw.map(s => ({
+      ...s,
+      configId: s.configId ?? DISHARI_CONFIG_ID,
+    })) as Session[]
   } catch {
     return []
   }
@@ -42,6 +43,8 @@ export function useSessions() {
       persist(seeded)
       return seeded
     }
+    // Re-persist if migration filled in any configId values
+    persist(loaded)
     return loaded
   })
 
@@ -66,7 +69,7 @@ export function useSessions() {
     localStorage.setItem(CURRENT_SESSION_KEY, id)
   }
 
-  function createSession(name: string): Session | null {
+  function createSession(name: string, configId: string = DISHARI_CONFIG_ID): Session | null {
     const trimmed = name.trim()
     if (!trimmed) return null
     if (sessions.length >= MAX_SESSIONS) return null
@@ -79,7 +82,7 @@ export function useSessions() {
       id = `${id.slice(0, 44)}-${Math.random().toString(36).slice(2, 6)}`
     }
 
-    const session: Session = { id, name: trimmed, createdAt: new Date().toISOString() }
+    const session: Session = { id, name: trimmed, createdAt: new Date().toISOString(), configId }
     const updated = [...sessions, session]
     setSessions(updated)
     persist(updated)
@@ -103,6 +106,21 @@ export function useSessions() {
     if (currentSessionId === id) setCurrentSession('default')
   }
 
+  function reassignSessionsConfig(fromConfigId: string, toConfigId: string): void {
+    if (fromConfigId === toConfigId) return
+    let changed = false
+    const updated = sessions.map(s => {
+      if (s.configId === fromConfigId) {
+        changed = true
+        return { ...s, configId: toConfigId }
+      }
+      return s
+    })
+    if (!changed) return
+    setSessions(updated)
+    persist(updated)
+  }
+
   return {
     sessions,
     currentSession,
@@ -112,5 +130,6 @@ export function useSessions() {
     createSession,
     renameSession,
     deleteSession,
+    reassignSessionsConfig,
   }
 }

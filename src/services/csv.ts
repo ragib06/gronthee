@@ -1,49 +1,6 @@
-import type { BookMetadata, Session } from '@/types'
+import type { BookMetadata, ExportColumn, ExportConfig, Session } from '@/types'
 
 const RND_HEADERS = ['Book ID', 'Images', 'Prompt Output']
-
-const HEADERS = [
-  'ISBN',
-  'Language',
-  'Author',
-  'Title',
-  'Sub Title',
-  'Other Title',
-  'Edition',
-  'Publication Place',
-  'Publisher',
-  'Published Year',
-  'Page Count',
-  'other physical details',
-  'Series',
-  'Note Area',
-  'Category',
-  'Genre',
-  'Subject 3',
-  'Subject 4',
-  'Subject 5',
-  'Second Author',
-  'Third Column',
-  'Editor',
-  'Compiler',
-  'Translator',
-  'Illustrator',
-  'Item Type',
-  'Status',
-  'Collection',
-  'Home Branch',
-  'Holding Branch',
-  'Shelving Location',
-  'Scan Date',
-  'Source of Aquisition',
-  'Cost, normal purchase price',
-  'Call No',
-  'BarCode',
-  'Public Note',
-  'Second Copy',
-  'Third Copy',
-  'Fourth Copy',
-]
 
 function escape(val: string): string {
   if (val.includes(',') || val.includes('"') || val.includes('\n')) {
@@ -51,8 +8,6 @@ function escape(val: string): string {
   }
   return val
 }
-
-const EMPTY = ''
 
 function rndRow(book: BookMetadata): string[] {
   return [
@@ -62,49 +17,19 @@ function rndRow(book: BookMetadata): string[] {
   ]
 }
 
-function toRow(book: BookMetadata): string[] {
-  return [
-    book.isbn,
-    book.language,
-    book.author,
-    book.title,
-    book.subTitle,
-    book.otherTitle,
-    book.edition,
-    book.publicationPlace,
-    book.publisher,
-    book.publishedYear,
-    book.pageCount,
-    EMPTY,               // other physical details
-    EMPTY,               // Series
-    EMPTY,               // Note Area
-    book.category,
-    book.genre,
-    EMPTY,               // Subject 3
-    EMPTY,               // Subject 4
-    EMPTY,               // Subject 5
-    book.secondAuthor,
-    EMPTY,               // Third Column
-    book.editor,
-    EMPTY,               // Compiler
-    book.translator,
-    book.illustrator,
-    book.itemType,
-    EMPTY,               // Status
-    book.collection,
-    EMPTY,               // Home Branch
-    EMPTY,               // Holding Branch
-    EMPTY,               // Shelving Location
-    book.scanDate,
-    EMPTY,               // Source of Aquisition
-    EMPTY,               // Cost, normal purchase price
-    EMPTY,               // Call No
-    EMPTY,               // BarCode
-    EMPTY,               // Public Note
-    EMPTY,               // Second Copy
-    EMPTY,               // Third Copy
-    EMPTY,               // Fourth Copy
-  ]
+function renderCell(book: BookMetadata, column: ExportColumn): string {
+  if (column.type === 'constant') return column.value
+  return (book[column.field] as string | undefined) ?? ''
+}
+
+function buildHeaders(config: ExportConfig, includeRnd: boolean): string[] {
+  const headers = config.columns.map(c => c.header)
+  return includeRnd ? [...headers, ...RND_HEADERS] : headers
+}
+
+function buildRow(book: BookMetadata, config: ExportConfig, includeRnd: boolean): string[] {
+  const cells = config.columns.map(c => renderCell(book, c))
+  return includeRnd ? [...cells, ...rndRow(book)] : cells
 }
 
 function datetimeStamp(): string {
@@ -131,14 +56,11 @@ export function sessionCsvFilename(username: string, sessionName: string, includ
   return `${prefix}${username}-${nameToSlug(sessionName)}-${datetimeStamp()}.csv`
 }
 
-function downloadCsv(books: BookMetadata[], filename: string, includeRnd: boolean): void {
-  const headers = includeRnd ? [...HEADERS, ...RND_HEADERS] : HEADERS
+function downloadCsv(books: BookMetadata[], filename: string, config: ExportConfig, includeRnd: boolean): void {
+  const headers = buildHeaders(config, includeRnd)
   const rows = [
     headers.map(escape).join(','),
-    ...books.map(b => {
-      const cells = includeRnd ? [...toRow(b), ...rndRow(b)] : toRow(b)
-      return cells.map(escape).join(',')
-    }),
+    ...books.map(b => buildRow(b, config, includeRnd).map(escape).join(',')),
   ]
   const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -151,14 +73,20 @@ function downloadCsv(books: BookMetadata[], filename: string, includeRnd: boolea
   URL.revokeObjectURL(url)
 }
 
-export function exportToCsv(books: BookMetadata[], filename: string, includeRnd = false): void {
-  downloadCsv(books, filename, includeRnd)
+export function exportToCsv(
+  books: BookMetadata[],
+  filename: string,
+  config: ExportConfig,
+  includeRnd = false,
+): void {
+  downloadCsv(books, filename, config, includeRnd)
 }
 
 export function exportSessionsToCsv(
   sessions: Session[],
   books: BookMetadata[],
   username: string,
+  resolveConfig: (id: string) => ExportConfig,
   includeRnd = false,
 ): void {
   // Stagger downloads by 300 ms each — browsers silently drop simultaneous
@@ -166,7 +94,8 @@ export function exportSessionsToCsv(
   sessions.forEach((session, i) => {
     setTimeout(() => {
       const sessionBooks = books.filter(b => b.sessionId === session.id)
-      downloadCsv(sessionBooks, sessionCsvFilename(username, session.name, includeRnd), includeRnd)
+      const config = resolveConfig(session.configId)
+      downloadCsv(sessionBooks, sessionCsvFilename(username, session.name, includeRnd), config, includeRnd)
     }, i * 300)
   })
 }
