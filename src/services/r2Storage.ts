@@ -4,10 +4,10 @@ import { compressImage } from './imageCompression'
 // Read env vars lazily so tests can override them via vi.stubEnv
 function env() {
   return {
-    accountId: import.meta.env.VITE_CLOUDFLARE_ACCOUNT_ID as string | undefined,
-    accessKey: import.meta.env.VITE_CLOUDFLARE_R2_ACCESS_KEY_ID as string | undefined,
-    secretKey: import.meta.env.VITE_CLOUDFLARE_R2_API_KEY as string | undefined,
-    bucket:    import.meta.env.VITE_CLOUDFLARE_R2_BUCKET_NAME as string | undefined,
+    accountId: import.meta.env.MONDOL_VITE_CLOUDFLARE_ACCOUNT_ID as string | undefined,
+    accessKey: import.meta.env.MONDOL_VITE_CLOUDFLARE_R2_ACCESS_KEY_ID as string | undefined,
+    secretKey: import.meta.env.MONDOL_VITE_CLOUDFLARE_R2_API_KEY as string | undefined,
+    bucket:    import.meta.env.MONDOL_VITE_CLOUDFLARE_R2_BUCKET_NAME as string | undefined,
   }
 }
 

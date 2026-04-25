@@ -8,13 +8,13 @@ const config = rawConfig as Omit<AIConfig, 'providers'> & {
 function getApiKey(provider: AIProvider): string {
   switch (provider) {
     case 'anthropic':
-      return import.meta.env.VITE_ANTHROPIC_API_KEY ?? ''
+      return import.meta.env.MONDOL_VITE_ANTHROPIC_API_KEY ?? ''
     case 'openai':
       return import.meta.env.VITE_OPENAI_API_KEY ?? ''
     case 'gemini':
-      return import.meta.env.VITE_GEMINI_API_KEY ?? ''
+      return import.meta.env.MONDOL_VITE_GEMINI_API_KEY ?? ''
     case 'openrouter':
-      return import.meta.env.VITE_OPENROUTER_API_KEY ?? ''
+      return import.meta.env.MONDOL_VITE_OPENROUTER_API_KEY ?? ''
   }
 }
 

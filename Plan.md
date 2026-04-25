@@ -107,7 +107,7 @@ gronthee/
 4. Create `tailwind.config.ts` with custom theme tokens (font, colors, border-radius)
 5. Set up `tsconfig.json` with `"paths"` alias (`@/` → `src/`)
 6. Create `.gitignore` — include `.env.local` and `node_modules`; `ai-config.json` is committed (no secrets — API keys come from env vars)
-7. Write `.env.example` with placeholder values (`VITE_ANTHROPIC_API_KEY=`, `VITE_OPENAI_API_KEY=`, `VITE_GEMINI_API_KEY=`)
+7. Write `.env.example` with placeholder values (`MONDOL_VITE_ANTHROPIC_API_KEY=`, `VITE_OPENAI_API_KEY=`, `MONDOL_VITE_GEMINI_API_KEY=`)
 8. Bootstrap `src/main.tsx` and blank `src/App.tsx`
 
 **Files to create**:
@@ -171,7 +171,7 @@ gronthee/
 
 **Tasks**:
 
-1. Write `src/config/ai-config.ts` — defines static provider/model list; resolves API keys from `import.meta.env` (`VITE_ANTHROPIC_API_KEY`, `VITE_OPENAI_API_KEY`, `VITE_GEMINI_API_KEY`); exports typed `AIConfig` and helpers
+1. Write `src/config/ai-config.ts` — defines static provider/model list; resolves API keys from `import.meta.env` (`MONDOL_VITE_ANTHROPIC_API_KEY`, `VITE_OPENAI_API_KEY`, `MONDOL_VITE_GEMINI_API_KEY`); exports typed `AIConfig` and helpers
 2. Write provider adapters:
    - `src/services/ai/anthropic.ts`
    - `src/services/ai/openai.ts`
@@ -243,7 +243,7 @@ Where `Base64Image` is `{ data: string; mimeType: string }`.
 Use a single `activePage` state in `App.tsx` (values: `'scan' | 'editor' | 'history'`) plus an `activeBook` state to pass the current book to the editor. This avoids adding React Router for what is effectively a 3-screen app, reduces bundle size, and keeps state flow simple.
 
 ### AI Config Loading
-Provider and model definitions are declared as a static TypeScript constant in `src/config/ai-config.ts`. API keys are read at runtime from Vite environment variables (`import.meta.env.VITE_ANTHROPIC_API_KEY`, etc.) — they are never bundled into source. For local development, keys go in `.env.local` (gitignored). For production, they are set as Vercel environment variables in the Vercel dashboard or via `vercel env add`. Only `.env.example` (with empty placeholder values) is committed to the repo.
+Provider and model definitions are declared as a static TypeScript constant in `src/config/ai-config.ts`. API keys are read at runtime from Vite environment variables (`import.meta.env.MONDOL_VITE_ANTHROPIC_API_KEY`, etc.) — they are never bundled into source. For local development, keys go in `.env.local` (gitignored). For production, they are set as Vercel environment variables in the Vercel dashboard or via `vercel env add`. Only `.env.example` (with empty placeholder values) is committed to the repo.
 
 ### State Management
 No Redux or Zustand. App state is small enough for:
@@ -464,10 +464,10 @@ Return this exact JSON structure:
 ### `.env.example` (committed to repo — no real keys)
 
 ```
-VITE_ANTHROPIC_API_KEY=
+MONDOL_VITE_ANTHROPIC_API_KEY=
 VITE_OPENAI_API_KEY=
-VITE_GEMINI_API_KEY=
-VITE_OPENROUTER_API_KEY=
+MONDOL_VITE_GEMINI_API_KEY=
+MONDOL_VITE_OPENROUTER_API_KEY=
 ```
 
 Developers copy this to `.env.local` and fill in their keys. In production, these are set as Vercel environment variables via the Vercel dashboard or `vercel env add`.
@@ -486,7 +486,7 @@ export const AI_CONFIG: AIConfig = {
     {
       provider: 'anthropic',
       label: 'Anthropic',
-      apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY ?? '',
+      apiKey: import.meta.env.MONDOL_VITE_ANTHROPIC_API_KEY ?? '',
       models: [
         { id: 'claude-opus-4-6', label: 'Claude Opus 4.5' },
         { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
@@ -505,7 +505,7 @@ export const AI_CONFIG: AIConfig = {
     {
       provider: 'gemini',
       label: 'Google Gemini',
-      apiKey: import.meta.env.VITE_GEMINI_API_KEY ?? '',
+      apiKey: import.meta.env.MONDOL_VITE_GEMINI_API_KEY ?? '',
       models: [
         { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
         { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
@@ -515,7 +515,7 @@ export const AI_CONFIG: AIConfig = {
     {
       provider: 'openrouter',
       label: 'OpenRouter',
-      apiKey: import.meta.env.VITE_OPENROUTER_API_KEY ?? '',
+      apiKey: import.meta.env.MONDOL_VITE_OPENROUTER_API_KEY ?? '',
       models: [
         { id: 'qwen/qwen3.6-plus:free', label: 'Qwen 3.6 Plus' },
       ],
@@ -650,7 +650,7 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **No CSV column by default**: Image URLs are not in the default CSV (format matches an external library system). See Phase 8 — image URLs are available via the optional R&D columns.
 - **No R2 delete on book delete**: Deferred; can be added as a cleanup feature later
 - **Public URL hardcoded**: `https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev` is hardcoded in `r2Storage.ts`
-- **Env vars**: `VITE_CLOUDFLARE_ACCOUNT_ID`, `VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `VITE_CLOUDFLARE_R2_API_KEY` (secret key), `VITE_CLOUDFLARE_R2_BUCKET_NAME`
+- **Env vars**: `MONDOL_VITE_CLOUDFLARE_ACCOUNT_ID`, `MONDOL_VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `MONDOL_VITE_CLOUDFLARE_R2_API_KEY` (secret key), `MONDOL_VITE_CLOUDFLARE_R2_BUCKET_NAME`
 
 ### Critical Files (must exist before dependent work can proceed)
 

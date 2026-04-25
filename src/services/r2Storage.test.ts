@@ -28,10 +28,10 @@ const FAKE_BLOB = new Blob(['compressed'], { type: 'image/jpeg' })
 
 // Env vars required by r2Storage
 const ENV = {
-  VITE_CLOUDFLARE_ACCOUNT_ID: 'acc123',
-  VITE_CLOUDFLARE_R2_ACCESS_KEY_ID: 'key-id',
-  VITE_CLOUDFLARE_R2_API_KEY: 'secret',
-  VITE_CLOUDFLARE_R2_BUCKET_NAME: 'test-bucket',
+  MONDOL_VITE_CLOUDFLARE_ACCOUNT_ID: 'acc123',
+  MONDOL_VITE_CLOUDFLARE_R2_ACCESS_KEY_ID: 'key-id',
+  MONDOL_VITE_CLOUDFLARE_R2_API_KEY: 'secret',
+  MONDOL_VITE_CLOUDFLARE_R2_BUCKET_NAME: 'test-bucket',
 }
 
 beforeEach(() => {
@@ -51,7 +51,7 @@ afterEach(() => {
 
 describe('uploadImagesToR2', () => {
   it('returns empty result when credentials are not configured', async () => {
-    vi.stubEnv('VITE_CLOUDFLARE_ACCOUNT_ID', '')
+    vi.stubEnv('MONDOL_VITE_CLOUDFLARE_ACCOUNT_ID', '')
     const result = await uploadImagesToR2('book-1', ['data:image/jpeg;base64,abc'])
     expect(result).toEqual({ urls: [], failed: 0 })
     expect(mockFetch).not.toHaveBeenCalled()
