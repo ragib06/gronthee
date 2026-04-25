@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import HistoryPage from './HistoryPage'
+import { DISHARI_CONFIG } from '@/services/exportConfig'
 import type { BookMetadata, Session } from '@/types'
 
 vi.mock('@/services/csv', () => ({
@@ -9,8 +10,10 @@ vi.mock('@/services/csv', () => ({
   defaultCsvFilename: vi.fn().mockReturnValue('test.csv'),
 }))
 
+const getConfig = () => DISHARI_CONFIG
+
 function makeSession(id: string, name: string): Session {
-  return { id, name, createdAt: new Date().toISOString() }
+  return { id, name, createdAt: new Date().toISOString(), configId: 'dishari' }
 }
 
 function makeBook(id: string, title: string, sessionId: string): BookMetadata {
@@ -37,6 +40,7 @@ function renderPage() {
       navigate={vi.fn()}
       books={books}
       sessions={sessions}
+      getConfig={getConfig}
       onDelete={vi.fn()}
       username="ragib"
     />
@@ -87,6 +91,7 @@ describe('HistoryPage session filter chips', () => {
         navigate={vi.fn()}
         books={[makeBook('1', 'Book A', 'default')]}
         sessions={[makeSession('default', 'Default')]}
+        getConfig={getConfig}
         onDelete={vi.fn()}
         username="ragib"
       />

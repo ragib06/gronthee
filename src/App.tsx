@@ -4,9 +4,11 @@ import AppShell from '@/components/layout/AppShell'
 import ScannerPage from '@/components/scanner/ScannerPage'
 import BookEditorPage from '@/components/editor/BookEditorPage'
 import HistoryPage from '@/components/history/HistoryPage'
+import ConfigsPage from '@/components/configs/ConfigsPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
 import { useBookHistory } from '@/hooks/useBookHistory'
 import { useSessions } from '@/hooks/useSessions'
+import { useExportConfigs } from '@/hooks/useExportConfigs'
 import { getDefaultModel, resolveModel } from '@/config/ai-config'
 import type { BookMetadata, FieldConfidence, SelectedModel } from '@/types'
 
@@ -27,7 +29,7 @@ function saveModel(model: SelectedModel) {
   localStorage.setItem(MODEL_KEY, JSON.stringify({ provider: model.provider, modelId: model.modelId }))
 }
 
-export type Page = 'scan' | 'editor' | 'history'
+export type Page = 'scan' | 'editor' | 'history' | 'configs'
 
 export interface EditorParams {
   book?: BookMetadata
@@ -58,11 +60,26 @@ function App() {
     createSession,
     renameSession,
     deleteSession,
+    reassignSessionsConfig,
   } = useSessions()
+  const {
+    configs,
+    getConfig,
+    isBuiltIn,
+    createConfig,
+    updateConfig,
+    deleteConfig,
+    cloneConfig,
+  } = useExportConfigs()
 
   function handleDeleteSession(id: string) {
     reassignBooksToSession(id, 'default')
     deleteSession(id)
+  }
+
+  function handleDeleteConfig(id: string): boolean {
+    reassignSessionsConfig(id, 'dishari')
+    return deleteConfig(id)
   }
 
   const navigate: NavigateFn = (newPage, params = {}) => {
@@ -92,6 +109,8 @@ function App() {
             sessions={sessions}
             currentSession={currentSession}
             books={books}
+            configs={configs}
+            getConfig={getConfig}
             onSelectSession={setCurrentSession}
             onCreateSession={createSession}
             onRenameSession={renameSession}
@@ -118,9 +137,22 @@ function App() {
             navigate={navigate}
             books={books}
             sessions={sessions}
+            getConfig={getConfig}
             onDelete={deleteBook}
             username={username}
             flashMessage={editorParams.flashMessage}
+          />
+        )}
+        {page === 'configs' && (
+          <ConfigsPage
+            key="configs"
+            configs={configs}
+            getConfig={getConfig}
+            isBuiltIn={isBuiltIn}
+            createConfig={createConfig}
+            updateConfig={updateConfig}
+            deleteConfig={handleDeleteConfig}
+            cloneConfig={cloneConfig}
           />
         )}
       </AnimatePresence>

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { sessionCsvFilename, exportSessionsToCsv, exportToCsv } from './csv'
-import type { BookMetadata, Session } from '@/types'
+import { DISHARI_CONFIG } from './exportConfig'
+import type { BookMetadata, ExportConfig, Session } from '@/types'
 
 function makeBook(sessionId = 'default'): BookMetadata {
   return {
@@ -32,7 +33,33 @@ function makeBook(sessionId = 'default'): BookMetadata {
 }
 
 function makeSession(id: string, name: string): Session {
-  return { id, name, createdAt: new Date().toISOString() }
+  return { id, name, createdAt: new Date().toISOString(), configId: 'dishari' }
+}
+
+const resolveDishari = () => DISHARI_CONFIG
+
+// Capture-Blob helper used across tests
+function withCapturedBlob(run: () => void): string {
+  let captured = ''
+  const OriginalBlob = globalThis.Blob
+  vi.spyOn(globalThis, 'Blob').mockImplementation(function(
+    this: unknown,
+    parts?: BlobPart[],
+    opts?: BlobPropertyBag,
+  ) {
+    if (parts) captured = parts.join('')
+    return new OriginalBlob(parts, opts)
+  } as unknown as typeof Blob)
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+  const fakeA = document.createElement('a')
+  vi.spyOn(fakeA, 'click').mockImplementation(() => {})
+  vi.spyOn(document, 'createElement').mockReturnValue(fakeA as unknown as HTMLElement)
+
+  run()
+
+  vi.restoreAllMocks()
+  return captured
 }
 
 describe('sessionCsvFilename', () => {
@@ -92,7 +119,7 @@ describe('exportSessionsToCsv', () => {
   it('triggers one download per selected session', () => {
     const sessions = [makeSession('default', 'Default'), makeSession('sci-fi', 'Sci-Fi')]
     const books = [makeBook('default'), makeBook('sci-fi'), makeBook('sci-fi')]
-    exportSessionsToCsv(sessions, books, 'ragib')
+    exportSessionsToCsv(sessions, books, 'ragib', resolveDishari)
     vi.runAllTimers()
     expect(clickSpy).toHaveBeenCalledTimes(2)
   })
@@ -100,44 +127,44 @@ describe('exportSessionsToCsv', () => {
   it('single session triggers one download', () => {
     const sessions = [makeSession('default', 'Default')]
     const books = [makeBook('default')]
-    exportSessionsToCsv(sessions, books, 'ragib')
+    exportSessionsToCsv(sessions, books, 'ragib', resolveDishari)
     vi.runAllTimers()
     expect(clickSpy).toHaveBeenCalledTimes(1)
   })
 
   it('empty session still produces a download (header-only CSV)', () => {
     const sessions = [makeSession('empty', 'Empty')]
-    exportSessionsToCsv(sessions, [], 'ragib')
+    exportSessionsToCsv(sessions, [], 'ragib', resolveDishari)
     vi.runAllTimers()
     expect(clickSpy).toHaveBeenCalledTimes(1)
   })
+
+  it('resolves config per session via resolveConfig callback', () => {
+    const customConfig: ExportConfig = {
+      id: 'custom',
+      name: 'Custom',
+      columns: [
+        { type: 'mapped', header: 'TITLE_ONLY', field: 'title' },
+      ],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const sessions = [makeSession('default', 'Default'), { ...makeSession('custom-sess', 'Custom Session'), configId: 'custom' }]
+    const books = [makeBook('default'), makeBook('custom-sess')]
+    const resolveSpy = vi.fn((id: string): ExportConfig => id === 'custom' ? customConfig : DISHARI_CONFIG)
+    exportSessionsToCsv(sessions, books, 'ragib', resolveSpy)
+    vi.runAllTimers()
+    expect(resolveSpy).toHaveBeenCalledWith('dishari')
+    expect(resolveSpy).toHaveBeenCalledWith('custom')
+  })
 })
 
-describe('exportToCsv column order', () => {
+describe('exportToCsv with Dishari config', () => {
   it('CSV contains expected headers in order', () => {
-    let capturedContent = ''
-    const OriginalBlob = globalThis.Blob
-
-    // Must use a regular function (not arrow) so it can act as a constructor
-    vi.spyOn(globalThis, 'Blob').mockImplementation(function(
-      this: unknown,
-      parts?: BlobPart[],
-      opts?: BlobPropertyBag,
-    ) {
-      if (parts) capturedContent = parts.join('')
-      return new OriginalBlob(parts, opts)
-    } as unknown as typeof Blob)
-
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    // Use a real anchor element so appendChild/removeChild work in jsdom
-    const fakeA = document.createElement('a')
-    vi.spyOn(fakeA, 'click').mockImplementation(() => {})
-    vi.spyOn(document, 'createElement').mockReturnValue(fakeA as unknown as HTMLElement)
-
-    exportToCsv([makeBook()], 'test.csv')
-
-    const header = capturedContent.split('\n')[0] ?? ''
+    const captured = withCapturedBlob(() => {
+      exportToCsv([makeBook()], 'test.csv', DISHARI_CONFIG)
+    })
+    const header = captured.split('\n')[0] ?? ''
     expect(header).toContain('ISBN')
     expect(header).toContain('Author')
     expect(header).toContain('Title')
@@ -147,39 +174,66 @@ describe('exportToCsv column order', () => {
     expect(header).not.toContain('Book ID')
     expect(header).not.toContain('Images')
     expect(header).not.toContain('Prompt Output')
+  })
 
-    vi.restoreAllMocks()
+  // Backward-compat guard: Dishari output must remain byte-identical to the
+  // pre-feature hard-coded CSV. If this fails, a column has drifted.
+  it('produces byte-identical CSV to the legacy hard-coded format', () => {
+    const LEGACY_HEADERS = [
+      'ISBN', 'Language', 'Author', 'Title', 'Sub Title', 'Other Title',
+      'Edition', 'Publication Place', 'Publisher', 'Published Year',
+      'Page Count', 'other physical details', 'Series', 'Note Area',
+      'Category', 'Genre', 'Subject 3', 'Subject 4', 'Subject 5',
+      'Second Author', 'Third Column', 'Editor', 'Compiler',
+      'Translator', 'Illustrator', 'Item Type', 'Status', 'Collection',
+      'Home Branch', 'Holding Branch', 'Shelving Location', 'Scan Date',
+      'Source of Aquisition', 'Cost, normal purchase price', 'Call No',
+      'BarCode', 'Public Note', 'Second Copy', 'Third Copy', 'Fourth Copy',
+    ]
+    const escape = (val: string) =>
+      (val.includes(',') || val.includes('"') || val.includes('\n'))
+        ? `"${val.replace(/"/g, '""')}"`
+        : val
+    const legacyRow = (b: BookMetadata) => [
+      b.isbn, b.language, b.author, b.title, b.subTitle, b.otherTitle,
+      b.edition, b.publicationPlace, b.publisher, b.publishedYear,
+      b.pageCount, '', '', '',
+      b.category, b.genre, '', '', '',
+      b.secondAuthor, '', b.editor, '',
+      b.translator, b.illustrator, b.itemType, '', b.collection,
+      '', '', '', b.scanDate,
+      '', '', '', '', '', '', '', '',
+    ]
+
+    // Fixture exercises commas, quotes, newlines, empty fields
+    const tricky: BookMetadata = {
+      ...makeBook(),
+      title: 'Quoted "thing", with comma',
+      author: 'Line\nBreak',
+      summary: '',
+      subTitle: '',
+    }
+    const books = [makeBook(), tricky]
+
+    const captured = withCapturedBlob(() => {
+      exportToCsv(books, 'test.csv', DISHARI_CONFIG)
+    })
+
+    const expected = [
+      LEGACY_HEADERS.map(escape).join(','),
+      ...books.map(b => legacyRow(b).map(escape).join(',')),
+    ].join('\n')
+
+    expect(captured).toBe(expected)
   })
 })
 
-describe('exportToCsv R&D columns', () => {
-  let capturedContent = ''
-  const OriginalBlob = globalThis.Blob
-
-  beforeEach(() => {
-    capturedContent = ''
-    vi.spyOn(globalThis, 'Blob').mockImplementation(function(
-      this: unknown,
-      parts?: BlobPart[],
-      opts?: BlobPropertyBag,
-    ) {
-      if (parts) capturedContent = parts.join('')
-      return new OriginalBlob(parts, opts)
-    } as unknown as typeof Blob)
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock')
-    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const fakeA = document.createElement('a')
-    vi.spyOn(fakeA, 'click').mockImplementation(() => {})
-    vi.spyOn(document, 'createElement').mockReturnValue(fakeA as unknown as HTMLElement)
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
+describe('exportToCsv with R&D columns', () => {
   it('appends Book ID, Images, Prompt Output headers when includeRnd=true', () => {
-    exportToCsv([makeBook()], 'test.csv', true)
-    const header = capturedContent.split('\n')[0] ?? ''
+    const captured = withCapturedBlob(() => {
+      exportToCsv([makeBook()], 'test.csv', DISHARI_CONFIG, true)
+    })
+    const header = captured.split('\n')[0] ?? ''
     expect(header).toContain('Book ID')
     expect(header).toContain('Images')
     expect(header).toContain('Prompt Output')
@@ -192,22 +246,78 @@ describe('exportToCsv R&D columns', () => {
       imageUrls: ['https://pub.example/x/1.jpg', 'https://pub.example/x/2.jpg'],
       rawAIOutput: '{"title":"My Book"}',
     }
-    exportToCsv([book], 'test.csv', true)
-    const row = capturedContent.split('\n')[1] ?? ''
+    const captured = withCapturedBlob(() => {
+      exportToCsv([book], 'test.csv', DISHARI_CONFIG, true)
+    })
+    const row = captured.split('\n')[1] ?? ''
     expect(row).toContain('book-abc')
-    // Images column holds a JSON array — CSV-escaped by doubling quotes
     expect(row).toContain('https://pub.example/x/1.jpg')
     expect(row).toContain('https://pub.example/x/2.jpg')
-    // Raw AI JSON — quotes doubled by CSV escape
     expect(row).toContain('{""title"":""My Book""}')
   })
 
   it('leaves R&D cells empty for pre-feature books (no imageUrls / no rawAIOutput)', () => {
-    exportToCsv([makeBook()], 'test.csv', true)
-    const row = capturedContent.split('\n')[1] ?? ''
-    // Book id should still be present
+    const captured = withCapturedBlob(() => {
+      exportToCsv([makeBook()], 'test.csv', DISHARI_CONFIG, true)
+    })
+    const row = captured.split('\n')[1] ?? ''
+    // Book id should be present in the third-from-last cell
     expect(row.split(',').slice(-3, -2)[0]).toMatch(/^[\w-]+$/)
-    // Images + Prompt Output columns should be empty (trailing empty cells → ",,")
+    // Images + Prompt Output trail empty (",,")
     expect(row).toMatch(/,,\s*$/)
+  })
+
+  it('R&D columns work with a custom config too', () => {
+    const customConfig: ExportConfig = {
+      id: 'minimal',
+      name: 'Minimal',
+      columns: [
+        { type: 'mapped', header: 'Title', field: 'title' },
+        { type: 'constant', header: 'Marker', value: 'X' },
+      ],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const book: BookMetadata = {
+      ...makeBook(),
+      id: 'book-z',
+      imageUrls: ['https://pub.example/z/1.jpg'],
+      rawAIOutput: '{"k":"v"}',
+    }
+    const captured = withCapturedBlob(() => {
+      exportToCsv([book], 'test.csv', customConfig, true)
+    })
+    const lines = captured.split('\n')
+    expect(lines[0]).toBe('Title,Marker,Book ID,Images,Prompt Output')
+    expect(lines[1]).toContain('book-z')
+    expect(lines[1]).toContain('https://pub.example/z/1.jpg')
+  })
+})
+
+describe('renderCell behavior', () => {
+  it('mapped column with empty BookMetadata field renders empty string', () => {
+    const config: ExportConfig = {
+      id: 'tiny', name: 'Tiny',
+      columns: [{ type: 'mapped', header: 'Sub', field: 'subTitle' }],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const book = { ...makeBook(), subTitle: '' }
+    const captured = withCapturedBlob(() => exportToCsv([book], 'test.csv', config))
+    expect(captured.split('\n')[1]).toBe('')
+  })
+
+  it('constant column renders the literal value, even when empty', () => {
+    const config: ExportConfig = {
+      id: 'tiny', name: 'Tiny',
+      columns: [
+        { type: 'constant', header: 'Marker', value: 'fixed' },
+        { type: 'constant', header: 'Empty', value: '' },
+      ],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const captured = withCapturedBlob(() => exportToCsv([makeBook()], 'test.csv', config))
+    expect(captured.split('\n')[1]).toBe('fixed,')
   })
 })

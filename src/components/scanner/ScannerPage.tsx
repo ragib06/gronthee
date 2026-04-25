@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { ScanLine } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata, Session, SelectedModel } from '@/types'
+import type { BookMetadata, ExportConfig, Session, SelectedModel } from '@/types'
 import SessionSelector from '@/components/shared/SessionSelector'
 import { extractBookMetadata } from '@/services/ai'
 import { dataUrlToBase64Image, compressImageForApi } from '@/utils/imageToBase64'
@@ -23,8 +23,10 @@ interface ScannerPageProps {
   sessions: Session[]
   currentSession: Session
   books: BookMetadata[]
+  configs: ExportConfig[]
+  getConfig: (id: string) => ExportConfig
   onSelectSession: (id: string) => void
-  onCreateSession: (name: string) => Session | null
+  onCreateSession: (name: string, configId: string) => Session | null
   onRenameSession: (id: string, newName: string) => void
   onDeleteSession: (id: string) => void
 }
@@ -46,6 +48,8 @@ export default function ScannerPage({
   sessions,
   currentSession,
   books,
+  configs,
+  getConfig,
   onSelectSession,
   onCreateSession,
   onRenameSession,
@@ -154,11 +158,15 @@ export default function ScannerPage({
               sessions={sessions}
               currentSession={currentSession}
               books={books}
+              configs={configs}
+              getConfig={getConfig}
               onSelect={onSelectSession}
               onCreate={onCreateSession}
               onRename={onRenameSession}
               onDelete={onDeleteSession}
             />
+            <span className="text-xs text-gray-300">·</span>
+            <span className="text-xs text-gray-400">{getConfig(currentSession.configId).name}</span>
           </div>
         </div>
         <ModelSelector selectedModel={selectedModel} onChange={onModelChange} />

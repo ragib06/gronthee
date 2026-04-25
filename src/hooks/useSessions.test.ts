@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useSessions, toSlug, DEFAULT_SESSION } from './useSessions'
+import { useSessions, toSlug, DEFAULT_SESSION, DISHARI_CONFIG_ID } from './useSessions'
 
 const SESSIONS_KEY = 'gronthee:sessions'
 const CURRENT_KEY = 'gronthee:currentSessionId'
@@ -8,7 +8,12 @@ const CURRENT_KEY = 'gronthee:currentSessionId'
 function seedSessions(count: number) {
   const sessions = [DEFAULT_SESSION]
   for (let i = 1; i < count; i++) {
-    sessions.push({ id: `session-${i}`, name: `Session ${i}`, createdAt: new Date().toISOString() })
+    sessions.push({
+      id: `session-${i}`,
+      name: `Session ${i}`,
+      createdAt: new Date().toISOString(),
+      configId: DISHARI_CONFIG_ID,
+    })
   }
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions))
 }
@@ -58,7 +63,7 @@ describe('useSessions', () => {
   it('restores sessions from localStorage', () => {
     const stored = [
       DEFAULT_SESSION,
-      { id: 'fiction', name: 'Fiction', createdAt: new Date().toISOString() },
+      { id: 'fiction', name: 'Fiction', createdAt: new Date().toISOString(), configId: DISHARI_CONFIG_ID },
     ]
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(stored))
     const { result } = renderHook(() => useSessions())
@@ -101,7 +106,7 @@ describe('useSessions', () => {
     act(() => { result.current.createSession('my shelf') })
     // Force slug collision by pre-seeding
     const current = JSON.parse(localStorage.getItem(SESSIONS_KEY)!)
-    current.push({ id: 'another-shelf', name: 'another-shelf', createdAt: '' })
+    current.push({ id: 'another-shelf', name: 'another-shelf', createdAt: '', configId: DISHARI_CONFIG_ID })
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(current))
 
     const { result: result2 } = renderHook(() => useSessions())
@@ -145,7 +150,7 @@ describe('useSessions', () => {
   it('setCurrentSession persists to localStorage', () => {
     const stored = [
       DEFAULT_SESSION,
-      { id: 'sci-fi', name: 'Sci-Fi', createdAt: new Date().toISOString() },
+      { id: 'sci-fi', name: 'Sci-Fi', createdAt: new Date().toISOString(), configId: DISHARI_CONFIG_ID },
     ]
     localStorage.setItem(SESSIONS_KEY, JSON.stringify(stored))
     const { result } = renderHook(() => useSessions())
@@ -179,5 +184,79 @@ describe('useSessions', () => {
     act(() => { result.current.setCurrentSession(id) })
     act(() => { result.current.deleteSession(id) })
     expect(result.current.currentSessionId).toBe('default')
+  })
+
+  it('default session has configId set to dishari', () => {
+    const { result } = renderHook(() => useSessions())
+    expect(result.current.sessions[0].configId).toBe(DISHARI_CONFIG_ID)
+  })
+
+  it('createSession defaults configId to dishari when omitted', () => {
+    const { result } = renderHook(() => useSessions())
+    let created: ReturnType<typeof result.current.createSession> = null
+    act(() => { created = result.current.createSession('Science') })
+    expect(created!.configId).toBe(DISHARI_CONFIG_ID)
+  })
+
+  it('createSession stores configId when provided', () => {
+    const { result } = renderHook(() => useSessions())
+    let created: ReturnType<typeof result.current.createSession> = null
+    act(() => { created = result.current.createSession('Science', 'my-custom-config') })
+    expect(created!.configId).toBe('my-custom-config')
+    const persisted = JSON.parse(localStorage.getItem(SESSIONS_KEY)!)
+    expect(persisted.find((s: { id: string }) => s.id === created!.id).configId).toBe('my-custom-config')
+  })
+
+  it('migrates legacy sessions without configId to dishari', () => {
+    // Simulate localStorage written by a pre-feature build
+    const legacy = [
+      { id: 'default', name: 'Default', createdAt: new Date(0).toISOString() },
+      { id: 'fiction', name: 'Fiction', createdAt: new Date().toISOString() },
+    ]
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(legacy))
+    const { result } = renderHook(() => useSessions())
+    expect(result.current.sessions).toHaveLength(2)
+    expect(result.current.sessions[0].configId).toBe(DISHARI_CONFIG_ID)
+    expect(result.current.sessions[1].configId).toBe(DISHARI_CONFIG_ID)
+    // Migration is persisted back to localStorage
+    const persisted = JSON.parse(localStorage.getItem(SESSIONS_KEY)!)
+    expect(persisted.every((s: { configId?: string }) => s.configId === DISHARI_CONFIG_ID)).toBe(true)
+  })
+
+  it('preserves a non-dishari configId on existing sessions during migration', () => {
+    const stored = [
+      DEFAULT_SESSION,
+      { id: 'fiction', name: 'Fiction', createdAt: new Date().toISOString(), configId: 'custom-config' },
+    ]
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify(stored))
+    const { result } = renderHook(() => useSessions())
+    expect(result.current.sessions[1].configId).toBe('custom-config')
+  })
+
+  it('reassignSessionsConfig moves matching sessions to the new config', () => {
+    const { result } = renderHook(() => useSessions())
+    act(() => { result.current.createSession('Sci-Fi', 'my-config') })
+    act(() => { result.current.createSession('Fiction', 'my-config') })
+    act(() => { result.current.createSession('Poetry', 'other-config') })
+    act(() => { result.current.reassignSessionsConfig('my-config', DISHARI_CONFIG_ID) })
+
+    const byName = (n: string) => result.current.sessions.find(s => s.name === n)!
+    expect(byName('Sci-Fi').configId).toBe(DISHARI_CONFIG_ID)
+    expect(byName('Fiction').configId).toBe(DISHARI_CONFIG_ID)
+    // Sessions on a different config are untouched
+    expect(byName('Poetry').configId).toBe('other-config')
+
+    // Persisted to localStorage
+    const persisted = JSON.parse(localStorage.getItem(SESSIONS_KEY)!) as { name: string; configId: string }[]
+    expect(persisted.find(s => s.name === 'Sci-Fi')!.configId).toBe(DISHARI_CONFIG_ID)
+    expect(persisted.find(s => s.name === 'Poetry')!.configId).toBe('other-config')
+  })
+
+  it('reassignSessionsConfig is a no-op when no sessions match', () => {
+    const { result } = renderHook(() => useSessions())
+    act(() => { result.current.createSession('Sci-Fi', DISHARI_CONFIG_ID) })
+    const before = JSON.stringify(result.current.sessions)
+    act(() => { result.current.reassignSessionsConfig('nothing-here', DISHARI_CONFIG_ID) })
+    expect(JSON.stringify(result.current.sessions)).toBe(before)
   })
 })
