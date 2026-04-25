@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react(), tailwindcss()],
+    envPrefix: ['VITE_', 'MONDOL_'],
     server: {
       https: env.LOCAL_CERT ? {
         cert: env.LOCAL_CERT,
