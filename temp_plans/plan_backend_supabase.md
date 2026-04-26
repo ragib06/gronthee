@@ -478,26 +478,38 @@ Each phase ends in a deployable, working app. Run `npm run build` after every ph
 
 ---
 
-### Phase 2 — Data layer: sessions + books
+### Phase 2a — Data layer: books → Supabase
 
-**Goal**: Books and sessions read/write from Supabase instead of localStorage.
+**Goal**: Books read/write from Supabase instead of localStorage. Sessions still use localStorage.
 
-1. Add `toBookRow` / `fromBookRow` helpers in `src/lib/db-mappers.ts` (camelCase ↔ snake_case + userId injection).
+1. Create `src/lib/db-mappers.ts` with `toBookRow` / `fromBookRow` helpers (camelCase ↔ snake_case + userId injection).
 2. Rewrite `src/hooks/useBookHistory.ts`:
    - On mount: `supabase.from('books').select('*').order('created_at', { ascending: false })`.
    - `addBook`: insert row, optimistic update.
    - `updateBook`: update row, optimistic update.
    - `deleteBook`: delete row, optimistic update.
    - Subscribe to Supabase realtime for the user's books (optional but useful for multi-device).
-3. Add `toSessionRow` / `fromSessionRow` to `src/lib/db-mappers.ts`.
-4. Rewrite `src/hooks/useSessions.ts`:
+3. Add `LocalStorageMigrationDialog` — shown once on first login if `gronthee:books` exists in localStorage (books only at this stage).
+
+**Acceptance**: new books appear in DB; existing test suite passes; sessions still work via localStorage unchanged.
+
+---
+
+### Phase 2b — Data layer: sessions → Supabase
+
+**Goal**: Sessions read/write from Supabase. Completes the core data layer migration.
+
+Depends on: Phase 2a (`db-mappers.ts` exists, migration dialog pattern established).
+
+1. Add `toSessionRow` / `fromSessionRow` to `src/lib/db-mappers.ts`.
+2. Rewrite `src/hooks/useSessions.ts`:
    - On mount: `supabase.from('sessions').select('*')`.
    - Upsert default session if none exist.
    - `createSession`, `renameSession`, `deleteSession`: DB ops + optimistic state.
-   - `currentSessionId` persists to `localStorage` only (it's UI state, not data — no need for DB).
-5. Add `LocalStorageMigrationDialog` — shown once on first login if `gronthee:books` exists in localStorage.
+   - `currentSessionId` persists to `localStorage` only (UI state — no DB needed).
+3. Extend `LocalStorageMigrationDialog` to also migrate sessions from localStorage on first login.
 
-**Acceptance**: new books appear in DB; sessions persist across browsers; existing test suite still passes (hooks are mocked in tests).
+**Acceptance**: sessions persist across browsers; `currentSessionId` still survives page refresh via localStorage; existing test suite passes.
 
 ---
 
