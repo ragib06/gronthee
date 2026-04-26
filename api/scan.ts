@@ -1,7 +1,9 @@
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+
 const PROMPT = `You are a book cataloging assistant. You will be given one or more images of a book (cover, title page, copyright page, or back cover). Extract the book's metadata and return it as a single JSON object.
 
 CRITICAL RULES:
@@ -99,17 +101,24 @@ interface ScanRequest {
 
 type ReasoningEffort = 'xhigh' | 'high' | 'medium' | 'low' | 'minimal' | 'none'
 
-const enc = new TextEncoder()
-const sse = (data: string) => enc.encode(`data: ${data}\n\n`)
+async function readBody(req: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) chunks.push(chunk as Buffer)
+  return Buffer.concat(chunks).toString('utf-8')
+}
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 })
+    res.statusCode = 405
+    res.end('Method Not Allowed')
+    return
   }
 
-  const auth = req.headers.get('Authorization')
+  const auth = req.headers.authorization
   if (!auth?.startsWith('Bearer ')) {
-    return new Response('Unauthorized', { status: 401 })
+    res.statusCode = 401
+    res.end('Unauthorized')
+    return
   }
   const token = auth.slice(7)
 
@@ -118,100 +127,97 @@ export default async function handler(req: Request): Promise<Response> {
     process.env.SUPABASE_ANON_KEY!,
   )
   const { error: authError } = await supabase.auth.getUser(token)
-  if (authError) return new Response('Unauthorized', { status: 401 })
+  if (authError) {
+    res.statusCode = 401
+    res.end('Unauthorized')
+    return
+  }
 
-  const { provider, modelId, images } = await req.json() as ScanRequest
+  const body = await readBody(req)
+  const { provider, modelId, images } = JSON.parse(body) as ScanRequest
 
-  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
-  const writer = writable.getWriter()
+  res.statusCode = 200
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('X-Accel-Buffering', 'no')
 
-  const write = (data: string) => writer.write(sse(data))
+  const write = (data: string) => res.write(`data: ${data}\n\n`)
 
-  ;(async () => {
-    try {
-      if (provider === 'anthropic') {
-        const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-        const imageBlocks: Anthropic.ImageBlockParam[] = images.map(img => ({
-          type: 'image',
-          source: { type: 'base64', media_type: img.mimeType, data: img.data },
-        }))
-        const stream = await client.messages.create({
-          model: modelId,
-          max_tokens: 2048,
-          stream: true,
-          messages: [{ role: 'user', content: [...imageBlocks, { type: 'text', text: PROMPT }] }],
-        })
-        for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            await write(JSON.stringify({ text: event.delta.text }))
-          }
-        }
-
-      } else if (provider === 'openai') {
-        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-        const imageParts: OpenAI.ChatCompletionContentPartImage[] = images.map(img => ({
-          type: 'image_url',
-          image_url: { url: `data:${img.mimeType};base64,${img.data}` },
-        }))
-        const stream = await client.chat.completions.create({
-          model: modelId,
-          max_tokens: 1024,
-          stream: true,
-          messages: [{ role: 'user', content: [...imageParts, { type: 'text', text: PROMPT }] }],
-        })
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content ?? ''
-          if (text) await write(JSON.stringify({ text }))
-        }
-
-      } else if (provider === 'gemini') {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-        const model = genAI.getGenerativeModel({ model: modelId })
-        const imageParts = images.map(img => ({
-          inlineData: { mimeType: img.mimeType, data: img.data },
-        }))
-        const result = await model.generateContentStream([...imageParts, { text: PROMPT }])
-        for await (const chunk of result.stream) {
-          const text = chunk.text()
-          if (text) await write(JSON.stringify({ text }))
-        }
-
-      } else if (provider === 'openrouter') {
-        const client = new OpenAI({
-          apiKey: process.env.OPENROUTER_API_KEY,
-          baseURL: 'https://openrouter.ai/api/v1',
-        })
-        const imageParts: OpenAI.ChatCompletionContentPartImage[] = images.map(img => ({
-          type: 'image_url',
-          image_url: { url: `data:${img.mimeType};base64,${img.data}` },
-        }))
-        const params: OpenAI.ChatCompletionCreateParamsStreaming & { reasoning?: { effort: ReasoningEffort } } = {
-          model: modelId,
-          max_tokens: 8192,
-          stream: true,
-          reasoning: { effort: 'medium' },
-          messages: [{ role: 'user', content: [...imageParts, { type: 'text', text: PROMPT }] }],
-        }
-        const stream = await client.chat.completions.create(params)
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content ?? ''
-          if (text) await write(JSON.stringify({ text }))
+  try {
+    if (provider === 'anthropic') {
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      const imageBlocks: Anthropic.ImageBlockParam[] = images.map(img => ({
+        type: 'image',
+        source: { type: 'base64', media_type: img.mimeType, data: img.data },
+      }))
+      const stream = await client.messages.create({
+        model: modelId,
+        max_tokens: 2048,
+        stream: true,
+        messages: [{ role: 'user', content: [...imageBlocks, { type: 'text', text: PROMPT }] }],
+      })
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          write(JSON.stringify({ text: event.delta.text }))
         }
       }
 
-      await write('[DONE]')
-    } catch (err) {
-      await write(JSON.stringify({ error: String(err) }))
-    } finally {
-      await writer.close()
-    }
-  })().catch(() => { writer.close().catch(() => {}) })
+    } else if (provider === 'openai') {
+      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+      const imageParts: OpenAI.ChatCompletionContentPartImage[] = images.map(img => ({
+        type: 'image_url',
+        image_url: { url: `data:${img.mimeType};base64,${img.data}` },
+      }))
+      const stream = await client.chat.completions.create({
+        model: modelId,
+        max_tokens: 1024,
+        stream: true,
+        messages: [{ role: 'user', content: [...imageParts, { type: 'text', text: PROMPT }] }],
+      })
+      for await (const chunk of stream) {
+        const text = chunk.choices[0]?.delta?.content ?? ''
+        if (text) write(JSON.stringify({ text }))
+      }
 
-  return new Response(readable, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'X-Accel-Buffering': 'no',
-    },
-  })
+    } else if (provider === 'gemini') {
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+      const model = genAI.getGenerativeModel({ model: modelId })
+      const imageParts = images.map(img => ({
+        inlineData: { mimeType: img.mimeType, data: img.data },
+      }))
+      const result = await model.generateContentStream([...imageParts, { text: PROMPT }])
+      for await (const chunk of result.stream) {
+        const text = chunk.text()
+        if (text) write(JSON.stringify({ text }))
+      }
+
+    } else if (provider === 'openrouter') {
+      const client = new OpenAI({
+        apiKey: process.env.OPENROUTER_API_KEY,
+        baseURL: 'https://openrouter.ai/api/v1',
+      })
+      const imageParts: OpenAI.ChatCompletionContentPartImage[] = images.map(img => ({
+        type: 'image_url',
+        image_url: { url: `data:${img.mimeType};base64,${img.data}` },
+      }))
+      const params: OpenAI.ChatCompletionCreateParamsStreaming & { reasoning?: { effort: ReasoningEffort } } = {
+        model: modelId,
+        max_tokens: 8192,
+        stream: true,
+        reasoning: { effort: 'medium' },
+        messages: [{ role: 'user', content: [...imageParts, { type: 'text', text: PROMPT }] }],
+      }
+      const stream = await client.chat.completions.create(params)
+      for await (const chunk of stream) {
+        const text = chunk.choices[0]?.delta?.content ?? ''
+        if (text) write(JSON.stringify({ text }))
+      }
+    }
+
+    write('[DONE]')
+  } catch (err) {
+    write(JSON.stringify({ error: String(err) }))
+  } finally {
+    res.end()
+  }
 }
