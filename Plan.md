@@ -822,3 +822,33 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Sync optimistic API preserved**: `createConfig`, `updateConfig`, `deleteConfig`, `cloneConfig` return synchronously (optimistic) and fire Supabase ops fire-and-forget with rollback on error. `ConfigsPage` props interface unchanged.
 - **Reset deletes configs + prefs from Supabase**: books and sessions remain in Supabase on reset (consistent with Phase 2 behavior — reset clears local cache and signs out, not a full data purge). Export configs and preferences are cleared since they replace what was previously cleared from localStorage.
 - **localStorage keys**: after Phase 3, only `gronthee:currentSessionId`, `gronthee:selectedModel`, and `gronthee:migrated` remain as meaningful localStorage keys.
+
+## 16. Phase 13 — AI Proxy Edge Function (Phase 4, implemented 2026-04-26)
+
+**Goal**: AI API keys (Anthropic, Gemini, OpenRouter) never leave Vercel. Scanning routes through a server-side Edge Function with JWT auth.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `api/scan.ts` | **New** — Vercel Edge Function; verifies Supabase JWT; routes to Anthropic/OpenAI/Gemini/OpenRouter with streaming SSE response |
+| `api/cron/keepalive.ts` | **New** — Vercel cron handler; Supabase SELECT to prevent free-tier pause |
+| `src/services/ai/proxy.ts` | **New** — client-side proxy; fetches `/api/scan` with Bearer token; reads SSE stream; returns `ParsedAIResponse` |
+| `src/services/ai/index.ts` | Replaced 4 provider imports with `extractViaProxy` |
+| `src/services/ai/anthropic.ts` | **Deleted** — logic moved into `api/scan.ts` |
+| `src/services/ai/openai.ts` | **Deleted** |
+| `src/services/ai/gemini.ts` | **Deleted** |
+| `src/services/ai/openrouter.ts` | **Deleted** |
+| `src/config/ai-config.ts` | Removed `getApiKey()` and all `VITE_*_API_KEY` reads; `resolveModel`/`getDefaultModel` no longer include `apiKey` |
+| `src/types/index.ts` | Removed `apiKey` from `SelectedModel` interface |
+| `tsconfig.api.json` | **New** — TypeScript config for `api/` (ES2023 + DOM + Node types) |
+| `tsconfig.json` | References `tsconfig.api.json` |
+| `eslint.config.js` | Added `api/**` block with Node globals |
+| `.env.local` | Removed `VITE_ANTHROPIC_API_KEY`, `VITE_GEMINI_API_KEY`, `VITE_OPENROUTER_API_KEY`; added `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` (server-side, no `VITE_` prefix) |
+
+### Design decisions
+- **Edge Function streaming**: AI provider responses are streamed as SSE (`data: {"text":"…"}\n\n`) terminated by `data: [DONE]\n\n`. Avoids Vercel Hobby 10s timeout on large responses.
+- **JWT auth via Supabase `getUser(token)`**: Edge Function creates a Supabase client with the anon key and verifies the Bearer token. Ensures only authenticated users can trigger AI calls.
+- **Proxy collects all SSE chunks then calls `parseAIResponse`**: UI scanning flow is unchanged — `extractBookMetadata` still returns a `Promise<ParsedAIResponse>`. Streaming in the proxy is an implementation detail.
+- **`SelectedModel.apiKey` removed**: no longer needed since keys live server-side. `resolveModel` and `getDefaultModel` return `{ provider, modelId }` only.
+- **Local dev**: use `vercel dev` to run Edge Functions locally (reads `.env.local`). `npm run dev` alone won't execute `/api/scan`.

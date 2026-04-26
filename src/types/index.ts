@@ -129,7 +129,6 @@ export interface AIConfig {
 export interface SelectedModel {
   provider: AIProvider
   modelId: string
-  apiKey: string
 }
 
 export type ConfidenceLevel = 'very low' | 'low' | 'high'
