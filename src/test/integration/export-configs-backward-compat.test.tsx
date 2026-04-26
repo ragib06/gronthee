@@ -1,38 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-
-const mockFrom = vi.fn()
-
-vi.mock('@/lib/supabase', () => ({
-  supabase: { from: (...args: unknown[]) => mockFrom(...args) },
-}))
-
-const USER_ID = 'user-integ-1'
-
-function mockChain(result = { error: null as null | { message: string } }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chain: any = {
-    eq: () => chain,
-    then: (fn: (r: typeof result) => void) => Promise.resolve(result).then(fn),
-  }
-  return chain
-}
-
-function setupMock() {
-  mockFrom.mockReturnValue({
-    select: () => ({
-      eq: () => ({
-        order: () => Promise.resolve({ data: [], error: null }),
-        single: () => Promise.resolve({ data: null, error: null }),
-      }),
-    }),
-    insert: () => mockChain(),
-    update: () => mockChain(),
-    delete: () => mockChain(),
-    upsert: () => ({
-      select: () => Promise.resolve({ data: [], error: null }),
-    }),
-  })
-}
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSessions } from '@/hooks/useSessions'
 import { useExportConfigs } from '@/hooks/useExportConfigs'
@@ -78,7 +44,7 @@ function withCapturedBlob(run: () => void): string {
   return captured
 }
 
-beforeEach(() => { localStorage.clear(); setupMock() })
+beforeEach(() => { localStorage.clear() })
 afterEach(() => { vi.restoreAllMocks() })
 
 // ---------------------------------------------------------------------------
@@ -112,7 +78,7 @@ describe('Backward compatibility — sessions without configId', () => {
 // ---------------------------------------------------------------------------
 describe('useExportConfigs — config lookup', () => {
   it('exposes bundled Dishari without any localStorage data', () => {
-    const { result } = renderHook(() => useExportConfigs(USER_ID))
+    const { result } = renderHook(() => useExportConfigs())
     const found = result.current.getConfig('dishari')
     expect(found.id).toBe('dishari')
     expect(found.builtIn).toBe(true)
@@ -120,7 +86,7 @@ describe('useExportConfigs — config lookup', () => {
   })
 
   it('falls back to Dishari for unknown ids', () => {
-    const { result } = renderHook(() => useExportConfigs(USER_ID))
+    const { result } = renderHook(() => useExportConfigs())
     expect(result.current.getConfig('does-not-exist').id).toBe('dishari')
   })
 })
@@ -158,7 +124,7 @@ describe('Export — R&D flag is config-agnostic', () => {
   })
 
   it('appends R&D columns to a custom-config export when includeRnd=true', () => {
-    const { result } = renderHook(() => useExportConfigs(USER_ID))
+    const { result } = renderHook(() => useExportConfigs())
     let customConfig: ReturnType<typeof result.current.createConfig> = null
     act(() => {
       customConfig = result.current.createConfig({
@@ -182,7 +148,7 @@ describe('Export — R&D flag is config-agnostic', () => {
 // ---------------------------------------------------------------------------
 describe('Custom config — session-level export', () => {
   it('session with custom config uses custom columns in CSV', () => {
-    const { result } = renderHook(() => useExportConfigs(USER_ID))
+    const { result } = renderHook(() => useExportConfigs())
     let customConfig: ReturnType<typeof result.current.createConfig> = null
     act(() => {
       customConfig = result.current.createConfig({
@@ -216,7 +182,7 @@ describe('Custom config — session-level export', () => {
 describe('Config deletion cascade', () => {
   it('sessions referencing deleted config fall back to dishari', () => {
     const { result: sessionsResult } = renderHook(() => useSessions())
-    const { result: configsResult } = renderHook(() => useExportConfigs(USER_ID))
+    const { result: configsResult } = renderHook(() => useExportConfigs())
 
     let customId = ''
     act(() => {
@@ -246,7 +212,7 @@ describe('Config deletion cascade', () => {
 
   it('after config deletion, subsequent export uses Dishari schema', () => {
     const { result: sessionsResult } = renderHook(() => useSessions())
-    const { result: configsResult } = renderHook(() => useExportConfigs(USER_ID))
+    const { result: configsResult } = renderHook(() => useExportConfigs())
 
     let customId = ''
     act(() => {

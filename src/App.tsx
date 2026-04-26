@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import AppShell from '@/components/layout/AppShell'
 import ScannerPage from '@/components/scanner/ScannerPage'
@@ -6,18 +6,13 @@ import BookEditorPage from '@/components/editor/BookEditorPage'
 import HistoryPage from '@/components/history/HistoryPage'
 import ConfigsPage from '@/components/configs/ConfigsPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
-import LoginPage from '@/components/auth/LoginPage'
-import AuthCallback from '@/components/auth/AuthCallback'
-import LocalStorageMigrationDialog, { hasPendingMigration } from '@/components/shared/LocalStorageMigrationDialog'
-import { useAuth } from '@/hooks/useAuth'
 import { useBookHistory } from '@/hooks/useBookHistory'
 import { useSessions } from '@/hooks/useSessions'
 import { useExportConfigs } from '@/hooks/useExportConfigs'
-import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { getDefaultModel, resolveModel } from '@/config/ai-config'
-import { supabase } from '@/lib/supabase'
 import type { BookMetadata, FieldConfidence, SelectedModel } from '@/types'
 
+const USERNAME_KEY = 'gronthee-username'
 const MODEL_KEY = 'gronthee:selectedModel'
 
 function loadSavedModel(): SelectedModel {
@@ -48,16 +43,16 @@ export interface EditorParams {
 export type NavigateFn = (page: Page, params?: EditorParams) => void
 
 function App() {
-  const { user, loading: authLoading, signOut } = useAuth()
-  const [username, setUsername] = useState<string | null>(null)
-  const [profileLoading, setProfileLoading] = useState(false)
-  const [showMigration, setShowMigration] = useState(false)
-
   const [page, setPage] = useState<Page>('scan')
   const [editorParams, setEditorParams] = useState<EditorParams>({})
   const [selectedModel, setSelectedModel] = useState<SelectedModel>(loadSavedModel)
 
-  const { books, addBook, updateBook, deleteBook, reassignBooksToSession } = useBookHistory(user?.id ?? null)
+  function handleModelChange(model: SelectedModel) {
+    saveModel(model)
+    setSelectedModel(model)
+  }
+  const [username, setUsername] = useState<string>(() => localStorage.getItem(USERNAME_KEY) ?? '')
+  const { books, addBook, updateBook, deleteBook, reassignBooksToSession } = useBookHistory()
   const {
     sessions,
     currentSession,
@@ -66,7 +61,7 @@ function App() {
     renameSession,
     deleteSession,
     reassignSessionsConfig,
-  } = useSessions(user?.id ?? null)
+  } = useSessions()
   const {
     configs,
     getConfig,
@@ -75,43 +70,7 @@ function App() {
     updateConfig,
     deleteConfig,
     cloneConfig,
-  } = useExportConfigs(user?.id ?? null)
-  const { preferences, recordCorrections } = useUserPreferences(user?.id ?? null)
-
-  // Load profile when user is known
-  useEffect(() => {
-    if (!user) {
-      setUsername(null)
-      return
-    }
-    setProfileLoading(true)
-    supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        setUsername(data?.username ?? null)
-        setProfileLoading(false)
-        if (data?.username && hasPendingMigration()) setShowMigration(true)
-      })
-  }, [user])
-
-  async function handleCreateProfile(name: string) {
-    if (!user) return
-    const { error } = await supabase
-      .from('profiles')
-      .insert({ id: user.id, username: name })
-    if (!error) {
-      setUsername(name)
-      if (hasPendingMigration()) setShowMigration(true)
-    }
-  }
-
-  function handleModelChange(model: SelectedModel) {
-    saveModel(model)
-    setSelectedModel(model)
-  }
+  } = useExportConfigs()
 
   function handleDeleteSession(id: string) {
     reassignBooksToSession(id, 'default')
@@ -128,44 +87,17 @@ function App() {
     setPage(newPage)
   }
 
-  // Handle magic-link callback route
-  if (window.location.pathname === '/auth/callback') {
-    return <AuthCallback />
-  }
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <LoginPage />
-  }
-
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-      </div>
-    )
+  function handleUsernameSubmit(name: string) {
+    localStorage.setItem(USERNAME_KEY, name)
+    setUsername(name)
   }
 
   if (!username) {
-    return <UsernameDialog onSubmit={handleCreateProfile} />
+    return <UsernameDialog onSubmit={handleUsernameSubmit} />
   }
 
   return (
-    <>
-    {showMigration && user && (
-      <LocalStorageMigrationDialog
-        userId={user.id}
-        onDone={() => setShowMigration(false)}
-      />
-    )}
-    <AppShell currentPage={page} navigate={navigate} userId={user.id} onSignOut={signOut}>
+    <AppShell currentPage={page} navigate={navigate}>
       <AnimatePresence mode="wait">
         {page === 'scan' && (
           <ScannerPage
@@ -179,7 +111,6 @@ function App() {
             books={books}
             configs={configs}
             getConfig={getConfig}
-            preferences={preferences}
             onSelectSession={setCurrentSession}
             onCreateSession={createSession}
             onRenameSession={renameSession}
@@ -198,7 +129,6 @@ function App() {
             currentSession={currentSession}
             onAdd={addBook}
             onUpdate={updateBook}
-            onRecordCorrections={recordCorrections}
           />
         )}
         {page === 'history' && (
@@ -227,7 +157,6 @@ function App() {
         )}
       </AnimatePresence>
     </AppShell>
-    </>
   )
 }
 
