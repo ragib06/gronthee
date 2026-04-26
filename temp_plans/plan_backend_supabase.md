@@ -1,7 +1,7 @@
 # Gronthee — Backend Migration: Supabase + Vercel Edge API
 
 **Generated:** 2026-04-25
-**Scope:** Multi-user support, server-side secrets, persistent cloud storage, private/public collections
+**Scope:** Multi-user support, server-side secrets, persistent cloud storage
 **Target infra:** Supabase (free tier) · Vercel (free tier / Hobby) · Cloudflare R2 (free tier, stays)
 
 ---
@@ -11,8 +11,7 @@
 1. Move all AI provider API keys and R2 credentials out of the browser (no more `VITE_` prefix for secrets).
 2. Persist book data, sessions, and preferences in PostgreSQL (Supabase) so multiple users can use the app without sharing a browser.
 3. Add user authentication (email + magic-link via Supabase Auth).
-4. Support private vs. public collections at the session level.
-5. Keep the existing UX as intact as possible — this is a backend migration, not a redesign.
+4. Keep the existing UX as intact as possible — this is a backend migration, not a redesign.
 
 ---
 
@@ -96,21 +95,11 @@ OpenAI, Anthropic, OpenRouter all support streaming. Gemini SDK also supports st
 
 Free-tier Supabase projects pause after 1 week of inactivity. Mitigation: a daily Vercel Cron job (`/api/cron/keepalive`) runs a lightweight `SELECT 1` query to prevent pause. Vercel Hobby plan supports 2 cron jobs; this uses one.
 
-### 3.5 Private vs. public visibility
-
-Visibility lives on the **session** level (not per-book). A session is either `private` (default) or `public`. Public sessions are visible to anyone with the link. This is simpler than per-book visibility and matches how exports work (per-session).
-
-RLS enforces:
-- Private sessions: owner only
-- Public sessions: all authenticated + unauthenticated read (for sharing links)
-
-Books inherit the visibility of their session for read access.
-
-### 3.6 localStorage migration
+### 3.5 localStorage migration
 
 On first login, if the browser has existing `gronthee:books` data, the app offers a one-time import prompt: "You have N books in local storage. Import them to your account?" On confirm, a migration function reads all localStorage keys and writes the data to Supabase. After migration completes, localStorage keys are cleared. This is optional — user can dismiss and start fresh.
 
-### 3.7 No tRPC, no Prisma
+### 3.6 No tRPC, no Prisma
 
 Friends-and-family scale. Supabase's auto-generated TypeScript types + client are sufficient. Adding an ORM or RPC layer adds complexity with no benefit at this scale.
 
@@ -134,7 +123,6 @@ CREATE TABLE sessions (
   user_id     uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
   name        text NOT NULL,
   config_id   text NOT NULL DEFAULT 'dishari',
-  visibility  text NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'public')),
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
@@ -196,26 +184,21 @@ CREATE TABLE user_preferences (
 ### 4.2 Row Level Security
 
 ```sql
--- Profiles: owner read/write; others can read (needed for public book links)
+-- Profiles: owner only
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner" ON profiles USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-CREATE POLICY "read_all" ON profiles FOR SELECT USING (true);
 
--- Sessions: owner full access; public sessions readable by all
+-- Sessions: owner only
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner" ON sessions USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "public_read" ON sessions FOR SELECT USING (visibility = 'public');
 
 -- Export configs: owner only
 ALTER TABLE export_configs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner" ON export_configs USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- Books: owner full; books in public sessions readable by all
+-- Books: owner only
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "owner" ON books USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "public_session_read" ON books FOR SELECT USING (
-  EXISTS (SELECT 1 FROM sessions s WHERE s.id = session_id AND s.visibility = 'public')
-);
 
 -- Preferences: owner only
 ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
@@ -331,10 +314,12 @@ VITE_CLOUDFLARE_R2_BUCKET_NAME
 | `src/components/auth/AuthCallback.tsx` | Magic-link redirect handler |
 | `src/components/auth/AuthGuard.tsx` | Wrapper that redirects to login if not authed |
 | `src/components/shared/LocalStorageMigrationDialog.tsx` | One-time import offer on first login |
+
 | `api/scan.ts` | AI proxy Edge Function |
 | `api/r2/presign.ts` | R2 presigned URL Edge Function |
 | `api/cron/keepalive.ts` | Supabase keepalive cron |
 | `vercel.json` | Cron config + edge function routing |
+| `src/lib/db-mappers.ts` | camelCase ↔ snake_case + userId helpers for all tables |
 
 ### 7.2 Modified files
 
@@ -574,24 +559,7 @@ Each phase ends in a deployable, working app. Run `npm run build` after every ph
 
 ---
 
-### Phase 6 — Public/private sessions
-
-**Goal**: Users can make sessions public and share a read-only link.
-
-1. Add `visibility` toggle (lock icon) to `SessionSelector` session rows and/or `CreateSessionDialog`.
-2. Update `useSessions.toggleVisibility(id)` → `supabase.from('sessions').update({ visibility })`.
-3. Create `src/components/public/PublicSessionPage.tsx`:
-   - Accessible at `/public/:username/:sessionId`.
-   - Reads via Supabase client (no auth needed — RLS allows public session + book reads).
-   - Read-only book list: title, author, year, cover image.
-4. Add `/public/:username/:sessionId` route to `App.tsx` (outside `AuthGuard`).
-5. "Share" button on public sessions copies the link to clipboard.
-
-**Acceptance**: public session URL loads without login; private session URL 404s or shows "not found" for unauthenticated users.
-
----
-
-### Phase 7 — Supabase keepalive cron
+### Phase 6 — Supabase keepalive cron
 
 **Goal**: Free-tier project doesn't pause.
 
@@ -611,7 +579,7 @@ Each phase ends in a deployable, working app. Run `npm run build` after every ph
 
 ---
 
-### Phase 8 — Cleanup + docs
+### Phase 7 — Cleanup + docs
 
 1. Delete unused env vars from Vercel dashboard and `.env.local.example`.
 2. Update `REQUIREMENTS.md`: auth, multi-user, public/private, server-side keys.
@@ -661,6 +629,7 @@ No new backend-only deps — `aws4fetch` is already installed; AI SDKs move to t
 
 ## 16. Out of Scope (follow-ups)
 
+- **Public/private collections** — a new first-class concept (separate from sessions) with its own visibility model; planned as a future phase
 - OAuth login (Google, GitHub) — Supabase supports it; add when needed
 - Shared editing (collaborators on a session) — needs more complex RLS + invites
 - Full-text search across books — Supabase supports pg_trgm; add as follow-up
