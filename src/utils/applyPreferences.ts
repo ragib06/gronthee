@@ -1,15 +1,5 @@
 import type { UserPreferences } from '@/types'
 
-const STORAGE_KEY = 'gronthee:preferences'
-
-export function loadPreferences(): UserPreferences {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{"corrections":{}}') as UserPreferences
-  } catch {
-    return { corrections: {} }
-  }
-}
-
 export function applyPreferences(
   metadata: Record<string, string>,
   preferences: UserPreferences
