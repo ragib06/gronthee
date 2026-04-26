@@ -7,17 +7,28 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code')
-    if (!code) {
-      setError('No auth code found in URL.')
+
+    if (code) {
+      // PKCE flow: exchange code for session
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) setError(error.message)
+        else window.location.replace('/')
+      })
       return
     }
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        setError(error.message)
-      } else {
-        window.location.replace('/')
-      }
-    })
+
+    if (window.location.hash.includes('access_token')) {
+      // Implicit flow: Supabase JS detects token in hash automatically
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          subscription.unsubscribe()
+          window.location.replace('/')
+        }
+      })
+      return () => subscription.unsubscribe()
+    }
+
+    setError('No auth code found in URL.')
   }, [])
 
   return (
