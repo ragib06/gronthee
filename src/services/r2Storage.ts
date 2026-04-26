@@ -50,13 +50,18 @@ export async function uploadImagesToR2(
   const { accountId, bucket, publicUrl } = env()
   const endpoint = `https://${accountId}.r2.cloudflarestorage.com`
 
+  // bucket may be "name" or "name/prefix/path" — split out the actual bucket name and key prefix
+  const slashIdx = bucket!.indexOf('/')
+  const bucketName = slashIdx >= 0 ? bucket!.slice(0, slashIdx) : bucket!
+  const keyPrefix  = slashIdx >= 0 ? bucket!.slice(slashIdx + 1) + '/' : ''
+
   const results = await Promise.all(
     images.map(async (dataUrl, i) => {
-      const key = `${bookId}/${i + 1}.jpg`
+      const key = `${keyPrefix}${bookId}/${i + 1}.jpg`
       try {
         const blob = await compressImage(dataUrl)
         const response = await client.fetch(
-          `${endpoint}/${bucket}/${key}`,
+          `${endpoint}/${bucketName}/${key}`,
           {
             method: 'PUT',
             body: blob,

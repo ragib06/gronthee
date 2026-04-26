@@ -74,6 +74,35 @@ describe('uploadImagesToR2', () => {
     )
   })
 
+  describe('when BUCKET_NAME contains a subdir prefix (e.g. "bucket/prefix")', () => {
+    beforeEach(() => {
+      vi.stubEnv('VITE_CLOUDFLARE_R2_BUCKET_NAME', 'my-bucket/scans')
+    })
+
+    it('includes prefix in public URL', async () => {
+      const result = await uploadImagesToR2('book-1', ['data:image/jpeg;base64,a'])
+      expect(result.urls[0]).toBe('https://pub-test.r2.dev/scans/book-1/1.jpg')
+    })
+
+    it('uses real bucket name and prefixed key in PUT URL', async () => {
+      await uploadImagesToR2('book-1', ['data:image/jpeg;base64,a'])
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://acc123.r2.cloudflarestorage.com/my-bucket/scans/book-1/1.jpg',
+        expect.objectContaining({ method: 'PUT' }),
+      )
+    })
+
+    it('handles multi-segment prefix', async () => {
+      vi.stubEnv('VITE_CLOUDFLARE_R2_BUCKET_NAME', 'my-bucket/a/b')
+      const result = await uploadImagesToR2('book-1', ['data:image/jpeg;base64,a'])
+      expect(result.urls[0]).toBe('https://pub-test.r2.dev/a/b/book-1/1.jpg')
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://acc123.r2.cloudflarestorage.com/my-bucket/a/b/book-1/1.jpg',
+        expect.objectContaining({ method: 'PUT' }),
+      )
+    })
+  })
+
   it('sets Content-Type to image/jpeg', async () => {
     await uploadImagesToR2('abc', ['data:image/jpeg;base64,x'])
     const callArgs = mockFetch.mock.calls[0][1] as RequestInit & { headers: Record<string, string> }
