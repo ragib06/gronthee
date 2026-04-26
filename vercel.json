@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "[[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" && \"$VERCEL_GIT_COMMIT_REF\" != \"master\" ]]",
+  "ignoreCommand": "[[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" && \"$VERCEL_GIT_COMMIT_REF\" != \"master\" && \"$VERCEL_ENV\" != \"preview\" ]]",
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "crons": [
     {
