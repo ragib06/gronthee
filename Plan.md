@@ -469,6 +469,11 @@ VITE_ANTHROPIC_API_KEY=
 VITE_OPENAI_API_KEY=
 VITE_GEMINI_API_KEY=
 VITE_OPENROUTER_API_KEY=
+VITE_CLOUDFLARE_ACCOUNT_ID=
+VITE_CLOUDFLARE_R2_ACCESS_KEY_ID=
+VITE_CLOUDFLARE_R2_API_KEY=
+VITE_CLOUDFLARE_R2_BUCKET_NAME=
+VITE_CLOUDFLARE_R2_PUBLIC_URL=
 ```
 
 Developers copy this to `.env.local` and fill in their keys. In production, these are set as Vercel environment variables via the Vercel dashboard or `vercel env add`.
@@ -650,8 +655,7 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Silent degradation**: If credentials are not configured (e.g. local dev without `.env.local`), upload is skipped with no error
 - **No CSV column by default**: Image URLs are not in the default CSV (format matches an external library system). See Phase 8 — image URLs are available via the optional R&D columns.
 - **No R2 delete on book delete**: Deferred; can be added as a cleanup feature later
-- **Public URL hardcoded**: `https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev` is hardcoded in `r2Storage.ts`
-- **Env vars**: `VITE_CLOUDFLARE_ACCOUNT_ID`, `VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `VITE_CLOUDFLARE_R2_API_KEY` (secret key), `VITE_CLOUDFLARE_R2_BUCKET_NAME`
+- **Env vars**: `VITE_CLOUDFLARE_ACCOUNT_ID`, `VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `VITE_CLOUDFLARE_R2_API_KEY` (secret key), `VITE_CLOUDFLARE_R2_BUCKET_NAME`, `VITE_CLOUDFLARE_R2_PUBLIC_URL` (bucket's `pub-xxxxx.r2.dev` public URL)
 
 ### Critical Files (must exist before dependent work can proceed)
 

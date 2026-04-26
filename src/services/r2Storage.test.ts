@@ -32,6 +32,7 @@ const ENV = {
   VITE_CLOUDFLARE_R2_ACCESS_KEY_ID: 'key-id',
   VITE_CLOUDFLARE_R2_API_KEY: 'secret',
   VITE_CLOUDFLARE_R2_BUCKET_NAME: 'test-bucket',
+  VITE_CLOUDFLARE_R2_PUBLIC_URL: 'https://pub-test.r2.dev',
 }
 
 beforeEach(() => {
@@ -60,8 +61,8 @@ describe('uploadImagesToR2', () => {
   it('returns public URL for each successfully uploaded image', async () => {
     const result = await uploadImagesToR2('book-1', ['data:image/jpeg;base64,a', 'data:image/jpeg;base64,b'])
     expect(result.urls).toHaveLength(2)
-    expect(result.urls[0]).toBe('https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev/book-1/1.jpg')
-    expect(result.urls[1]).toBe('https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev/book-1/2.jpg')
+    expect(result.urls[0]).toBe('https://pub-test.r2.dev/book-1/1.jpg')
+    expect(result.urls[1]).toBe('https://pub-test.r2.dev/book-1/2.jpg')
     expect(result.failed).toBe(0)
   })
 
@@ -90,7 +91,7 @@ describe('uploadImagesToR2', () => {
       .mockRejectedValueOnce(new Error('network error'))
 
     const result = await uploadImagesToR2('book-1', ['img1', 'img2'])
-    expect(result.urls[0]).toBe('https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev/book-1/1.jpg')
+    expect(result.urls[0]).toBe('https://pub-test.r2.dev/book-1/1.jpg')
     expect(result.urls[1]).toBe('')
     expect(result.failed).toBe(1)
   })

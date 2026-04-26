@@ -8,14 +8,13 @@ function env() {
     accessKey: import.meta.env.VITE_CLOUDFLARE_R2_ACCESS_KEY_ID as string | undefined,
     secretKey: import.meta.env.VITE_CLOUDFLARE_R2_API_KEY as string | undefined,
     bucket:    import.meta.env.VITE_CLOUDFLARE_R2_BUCKET_NAME as string | undefined,
+    publicUrl: import.meta.env.VITE_CLOUDFLARE_R2_PUBLIC_URL as string | undefined,
   }
 }
 
-const PUBLIC_URL = 'https://pub-ee6eff0f380e4682848807d6c0e6fa9e.r2.dev'
-
 function isConfigured(): boolean {
-  const { accountId, accessKey, secretKey, bucket } = env()
-  return Boolean(accountId && accessKey && secretKey && bucket)
+  const { accountId, accessKey, secretKey, bucket, publicUrl } = env()
+  return Boolean(accountId && accessKey && secretKey && bucket && publicUrl)
 }
 
 function getClient(): AwsClient {
@@ -48,7 +47,7 @@ export async function uploadImagesToR2(
   }
 
   const client = getClient()
-  const { accountId, bucket } = env()
+  const { accountId, bucket, publicUrl } = env()
   const endpoint = `https://${accountId}.r2.cloudflarestorage.com`
 
   const results = await Promise.all(
@@ -67,7 +66,7 @@ export async function uploadImagesToR2(
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${await response.text()}`)
         }
-        return `${PUBLIC_URL}/${key}`
+        return `${publicUrl}/${key}`
       } catch (err) {
         console.error(`R2 upload failed for ${key}:`, err)
         return ''
