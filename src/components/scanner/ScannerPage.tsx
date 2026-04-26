@@ -2,11 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { ScanLine } from 'lucide-react'
 import type { NavigateFn } from '@/App'
-import type { BookMetadata, ExportConfig, Session, SelectedModel, UserPreferences } from '@/types'
+import type { BookMetadata, ExportConfig, Session, SelectedModel } from '@/types'
 import SessionSelector from '@/components/shared/SessionSelector'
 import { extractBookMetadata } from '@/services/ai'
 import { dataUrlToBase64Image, compressImageForApi } from '@/utils/imageToBase64'
-import { applyPreferences } from '@/utils/applyPreferences'
+import { loadPreferences, applyPreferences } from '@/utils/applyPreferences'
 import ModelSelector from './ModelSelector'
 import DropZone from './DropZone'
 import WebcamCapture from './WebcamCapture'
@@ -25,7 +25,6 @@ interface ScannerPageProps {
   books: BookMetadata[]
   configs: ExportConfig[]
   getConfig: (id: string) => ExportConfig
-  preferences: UserPreferences
   onSelectSession: (id: string) => void
   onCreateSession: (name: string, configId: string) => Session | null
   onRenameSession: (id: string, newName: string) => void
@@ -51,7 +50,6 @@ export default function ScannerPage({
   books,
   configs,
   getConfig,
-  preferences,
   onSelectSession,
   onCreateSession,
   onRenameSession,
@@ -124,7 +122,8 @@ export default function ScannerPage({
       const compressed = await Promise.all(images.map(compressImageForApi))
       const base64Images = compressed.map(dataUrlToBase64Image)
       const { metadata, confidence, raw: rawAIOutput } = await extractBookMetadata(base64Images, selectedModel)
-      const withPrefs = applyPreferences(metadata as Record<string, string>, preferences) as Partial<BookMetadata>
+      const prefs = loadPreferences()
+      const withPrefs = applyPreferences(metadata as Record<string, string>, prefs) as Partial<BookMetadata>
       const finalMetadata = pageCount ? { ...withPrefs, pageCount } : withPrefs
       navigate('editor', {
         pendingMetadata: finalMetadata,
