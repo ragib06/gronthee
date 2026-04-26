@@ -755,4 +755,45 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Validation cap**: max 200 columns per config; max 200-char header per column; max name length 80 (UI-enforced) — keeps imports bounded.
 - **Imports always become user configs**: `parseImported` strips `builtIn` so a shared file can never overwrite the bundled Dishari record.
 - **DnD with keyboard fallback**: HTML5 drag/drop powers reordering; up/down arrow buttons cover keyboard users without pulling in a DnD library.
+
+---
+
+## 13. Phase 10 — Supabase Backend: Auth + Books (Phase 1 + 2a, implemented 2026-04-25)
+
+**Goal**: Move book data and auth to Supabase. Books read/write from `public.books`; auth via Supabase magic-link. `LocalStorageMigrationDialog` migrates existing localStorage books on first login.
+
+### New / modified files
+| File | Purpose |
+|---|---|
+| `src/lib/supabase.ts` | Supabase JS client (anon key, public) |
+| `src/lib/supabase-types.ts` | Generated DB types |
+| `src/lib/db-mappers.ts` | `toBookRow` / `fromBookRow` — camelCase ↔ snake_case |
+| `src/hooks/useAuth.ts` | `useAuth()` — Supabase magic-link sign-in/out |
+| `src/hooks/useBookHistory.ts` | Rewritten: fetch/add/update/delete via Supabase `books` table |
+| `src/components/shared/LocalStorageMigrationDialog.tsx` | One-time localStorage → Supabase import dialog |
+| `src/App.tsx` | Wired `useAuth`; shows login page until authenticated; shows migration dialog after first login |
+
+---
+
+## 14. Phase 11 — Supabase Backend: Sessions (Phase 2b, implemented 2026-04-26)
+
+**Goal**: Sessions read/write from Supabase `public.sessions`. Completes the core data layer migration.
+
+### New / modified files
+| File | Change |
+|---|---|
+| `src/lib/db-mappers.ts` | Added `toSessionRow` / `fromSessionRow` |
+| `src/hooks/useSessions.ts` | Accepts `userId: string \| null`; Supabase path when provided (fetch + optimistic mutations); localStorage path when null (unchanged — all prior tests continue to pass) |
+| `src/components/shared/LocalStorageMigrationDialog.tsx` | Migrates non-default sessions alongside books; `hasPendingMigration` now triggers on sessions too; UI shows combined count |
+| `src/App.tsx` | Passes `user?.id ?? null` to `useSessions` |
+| `src/hooks/useSessions.test.ts` | Added `vi.mock('@/lib/supabase')`; added 7 Supabase-mode tests (`waitFor` pattern) |
+| `src/test/integration/sessions-backward-compat.test.tsx` | Added `vi.mock('@/lib/supabase')` |
+| `src/test/integration/export-configs-backward-compat.test.tsx` | Added `vi.mock('@/lib/supabase')` |
+
+### Design decisions
+- **Dual-mode hook**: `useSessions(userId?)` operates in localStorage mode when `userId` is null (auth loading or unauthenticated) and switches to Supabase when `userId` is provided. The `useEffect([userId])` loads from DB; the `useState` lazy initializer still seeds from localStorage for the null case so all 221 prior tests are unaffected.
+- **`currentSessionId` stays in localStorage**: it is UI state, not data — no server round-trip needed.
+- **Default session upserted on first DB fetch**: if no sessions exist for the user, `DEFAULT_SESSION` is upserted so the invariant "at least one session always exists" holds server-side.
+- **Optimistic mutations with rollback**: `createSession` adds to state immediately and rolls back on DB error; `renameSession` / `deleteSession` / `reassignSessionsConfig` fire-and-forget (no rollback needed for these).
+- **Migration dialog extended**: upserts non-default sessions before books; clears both `gronthee:sessions` and `gronthee:books` keys on success.
 - **Friendly import errors (Phase 6)**: `parseImported` wraps validation errors with a Gronthee-branded prefix ("This file isn't a valid Gronthee export config — …") so users get actionable messages rather than internal technical strings.

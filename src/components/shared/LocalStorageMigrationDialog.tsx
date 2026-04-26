@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { HardDriveDownload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { toBookRow } from '@/lib/db-mappers'
-import type { BookMetadata } from '@/types'
+import { toBookRow, toSessionRow } from '@/lib/db-mappers'
+import type { BookMetadata, Session } from '@/types'
 
 const BOOKS_KEY = 'gronthee:books'
+const SESSIONS_KEY = 'gronthee:sessions'
 const MIGRATED_KEY = 'gronthee:migrated'
 
 interface Props {
@@ -22,26 +23,59 @@ function loadLocalBooks(): BookMetadata[] {
   }
 }
 
+function loadLocalNonDefaultSessions(): Session[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? '[]') as Partial<Session>[]
+    return (Array.isArray(raw) ? raw : [])
+      .filter((s): s is Session => !!s.id && s.id !== 'default' && !!s.name)
+      .map(s => ({
+        id: s.id,
+        name: s.name,
+        createdAt: s.createdAt ?? new Date().toISOString(),
+        configId: s.configId ?? 'dishari',
+      }))
+  } catch {
+    return []
+  }
+}
+
 export function hasPendingMigration(): boolean {
-  return !localStorage.getItem(MIGRATED_KEY) && !!localStorage.getItem(BOOKS_KEY)
+  if (localStorage.getItem(MIGRATED_KEY)) return false
+  return !!localStorage.getItem(BOOKS_KEY) || loadLocalNonDefaultSessions().length > 0
 }
 
 export default function LocalStorageMigrationDialog({ userId, onDone }: Props) {
   const books = loadLocalBooks()
+  const sessions = loadLocalNonDefaultSessions()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleImport() {
     setLoading(true)
     setError(null)
-    const rows = books.map(b => toBookRow(b, userId))
-    const { error } = await supabase.from('books').upsert(rows)
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+
+    if (sessions.length > 0) {
+      const sessionRows = sessions.map(s => toSessionRow(s, userId))
+      const { error: sessionError } = await supabase.from('sessions').upsert(sessionRows)
+      if (sessionError) {
+        setError(sessionError.message)
+        setLoading(false)
+        return
+      }
     }
+
+    if (books.length > 0) {
+      const rows = books.map(b => toBookRow(b, userId))
+      const { error: bookError } = await supabase.from('books').upsert(rows)
+      if (bookError) {
+        setError(bookError.message)
+        setLoading(false)
+        return
+      }
+    }
+
     localStorage.removeItem(BOOKS_KEY)
+    localStorage.removeItem(SESSIONS_KEY)
     localStorage.setItem(MIGRATED_KEY, '1')
     setLoading(false)
     onDone()
@@ -51,6 +85,11 @@ export default function LocalStorageMigrationDialog({ userId, onDone }: Props) {
     localStorage.setItem(MIGRATED_KEY, '1')
     onDone()
   }
+
+  const countParts: string[] = []
+  if (books.length > 0) countParts.push(`${books.length} book${books.length !== 1 ? 's' : ''}`)
+  if (sessions.length > 0) countParts.push(`${sessions.length} session${sessions.length !== 1 ? 's' : ''}`)
+  const countText = countParts.join(' and ')
 
   return (
     <AnimatePresence>
@@ -73,9 +112,9 @@ export default function LocalStorageMigrationDialog({ userId, onDone }: Props) {
               <HardDriveDownload size={18} className="text-indigo-600" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-gray-900">Import existing books?</h3>
+              <h3 className="text-base font-semibold text-gray-900">Import existing data?</h3>
               <p className="text-sm text-gray-500 mt-1">
-                Found <span className="font-medium text-gray-700">{books.length} book{books.length !== 1 ? 's' : ''}</span> stored
+                Found <span className="font-medium text-gray-700">{countText}</span> stored
                 locally. Import them to your account?
               </p>
             </div>
@@ -96,7 +135,7 @@ export default function LocalStorageMigrationDialog({ userId, onDone }: Props) {
               disabled={loading}
               className="px-4 py-2 text-sm rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Importing…' : 'Import books'}
+              {loading ? 'Importing…' : 'Import data'}
             </button>
           </div>
         </motion.div>
