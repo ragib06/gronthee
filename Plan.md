@@ -852,3 +852,25 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Proxy collects all SSE chunks then calls `parseAIResponse`**: UI scanning flow is unchanged — `extractBookMetadata` still returns a `Promise<ParsedAIResponse>`. Streaming in the proxy is an implementation detail.
 - **`SelectedModel.apiKey` removed**: no longer needed since keys live server-side. `resolveModel` and `getDefaultModel` return `{ provider, modelId }` only.
 - **Local dev**: use `vercel dev` to run Edge Functions locally (reads `.env.local`). `npm run dev` alone won't execute `/api/scan`.
+
+## 17. Phase 14 — R2 Presigned Upload (Phase 5, implemented 2026-04-26)
+
+**Goal**: Cloudflare R2 credentials never reach the browser. The browser still uploads images directly to R2 (no proxy of image bytes through Vercel) by using short-lived presigned `PUT` URLs minted by a server function.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `api/r2/presign.ts` | **New** — Vercel Function; verifies Supabase JWT; signs `count` `PUT` URLs for `{bookId}/{i+1}.jpg` (5-min expiry) using `aws4fetch` `signQuery: true`; returns `{ uploads: [{ presignedUrl, publicUrl }] }` |
+| `src/services/r2Storage.ts` | Rewritten — removed `AwsClient` browser instantiation; calls `/api/r2/presign` with the Supabase access token, then `fetch(presignedUrl, { method: 'PUT', body: blob })` directly to R2 |
+| `src/services/r2Storage.test.ts` | Rewritten — mocks `supabase.auth.getSession` and global `fetch`; covers presign request shape, per-image PUT, partial/full failure, no-session, empty array |
+| `.env.example` | Pruned to only `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; all `VITE_CLOUDFLARE_*` and stale `VITE_*_API_KEY` entries removed |
+
+### Design decisions
+- **Presigned URL approach (not bytes-through-Vercel)**: Vercel Function bodies cap at ~4 MB; routing image data through Vercel would block uploads of compressed images that exceed that limit and waste bandwidth. The browser still PUTs blobs directly to R2; only the signature work is server-side.
+- **Public URL constructed server-side too**: bucket name may carry a path prefix (e.g. `bucket/scans`). The server already knows the prefix and the public CDN base, so it returns the absolute `publicUrl` alongside each `presignedUrl`. The frontend no longer needs `VITE_CLOUDFLARE_R2_PUBLIC_URL` and stays unaware of bucket layout.
+- **`signQuery: true` with `X-Amz-Expires=300`**: 5-minute expiry is comfortably long for compressed image PUTs (typically seconds) and short enough that a leaked URL has minimal blast radius. `Content-Type` is not signed so the client can pick the upload header freely; `X-Accel-Buffering` and bucket CORS already permit `PUT` from the app origin.
+- **Count cap (`1 ≤ count ≤ 20`)**: defensive bound on the server to prevent abuse via the JWT-authenticated endpoint.
+- **Auth shape mirrors `/api/scan`**: Bearer Supabase JWT, verified via `supabase.auth.getUser(token)` using `SUPABASE_URL` + `SUPABASE_ANON_KEY`. Reusing the pattern keeps both Vercel functions consistent.
+- **No-session degradation**: if `supabase.auth.getSession()` returns null on the client (e.g. a stale UI state during sign-out), `uploadImagesToR2` returns `{ urls: [], failed: 0 }` so the book still saves locally with the existing amber-warning UX, instead of throwing.
+- **Server env vars added**: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_KEY`, `CLOUDFLARE_R2_BUCKET_NAME`, `CLOUDFLARE_R2_PUBLIC_URL`. Removed from Vercel + `.env.local`: `VITE_CLOUDFLARE_ACCOUNT_ID`, `VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `VITE_CLOUDFLARE_R2_API_KEY`, `VITE_CLOUDFLARE_R2_BUCKET_NAME`, `VITE_CLOUDFLARE_R2_PUBLIC_URL`.
