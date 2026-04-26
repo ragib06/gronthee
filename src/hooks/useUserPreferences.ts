@@ -1,14 +1,9 @@
+import { useState, useEffect } from 'react'
 import type { UserPreferences, BookMetadata } from '@/types'
+import { supabase } from '@/lib/supabase'
+import { toPrefsRow, fromPrefsRow } from '@/lib/db-mappers'
 
-const STORAGE_KEY = 'gronthee:preferences'
-
-function load(): UserPreferences {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{"corrections":{}}') as UserPreferences
-  } catch {
-    return { corrections: {} }
-  }
-}
+const EMPTY_PREFS: UserPreferences = { corrections: {} }
 
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length
@@ -25,11 +20,26 @@ function levenshtein(a: string, b: string): number {
   return dp[m][n]
 }
 
-export function useUserPreferences() {
+export function useUserPreferences(userId: string | null) {
+  const [preferences, setPreferences] = useState<UserPreferences>(EMPTY_PREFS)
+
+  useEffect(() => {
+    if (!userId) { setPreferences(EMPTY_PREFS); return }
+    supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+      .then(({ data }) => {
+        if (data) setPreferences(fromPrefsRow(data))
+      })
+  }, [userId])
+
   function recordCorrections(
     original: Partial<BookMetadata>,
     saved: Omit<BookMetadata, 'id' | 'sessionId'>
   ) {
+    if (!userId) return
     const orig = (original as Record<string, unknown>)['author'] as string ?? ''
     const corr = (saved as Record<string, unknown>)['author'] as string ?? ''
 
@@ -38,15 +48,18 @@ export function useUserPreferences() {
     const distance = levenshtein(orig, corr)
     if (distance / orig.length > 0.3) return
 
-    const prefs = load()
     const updated: UserPreferences = {
       corrections: {
-        ...prefs.corrections,
-        author: { ...prefs.corrections['author'], [orig]: corr },
+        ...preferences.corrections,
+        author: { ...preferences.corrections['author'], [orig]: corr },
       },
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    setPreferences(updated)
+    supabase
+      .from('user_preferences')
+      .upsert(toPrefsRow(updated, userId))
+      .then(() => {})
   }
 
-  return { recordCorrections }
+  return { preferences, recordCorrections }
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { Session } from '@/types'
 import { toSlug } from '@/utils/slug'
+import { supabase } from '@/lib/supabase'
+import { toSessionRow, fromSessionRow } from '@/lib/db-mappers'
 
 export { toSlug }
 
@@ -13,7 +15,7 @@ export const DISHARI_CONFIG_ID = 'dishari'
 export const DEFAULT_SESSION: Session = {
   id: 'default',
   name: 'Default',
-  createdAt: new Date(0).toISOString(), // stable value; not shown in UI
+  createdAt: new Date(0).toISOString(),
   configId: DISHARI_CONFIG_ID,
 }
 
@@ -21,7 +23,6 @@ function loadSessions(): Session[] {
   try {
     const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY) ?? '[]') as Partial<Session>[]
     if (!Array.isArray(raw)) return []
-    // Migration: assign 'dishari' configId to any session that predates export configs
     return raw.map(s => ({
       ...s,
       configId: s.configId ?? DISHARI_CONFIG_ID,
@@ -35,31 +36,59 @@ function persist(sessions: Session[]): void {
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions))
 }
 
-export function useSessions() {
+export function useSessions(userId: string | null = null) {
   const [sessions, setSessions] = useState<Session[]>(() => {
+    if (userId) return []
     const loaded = loadSessions()
     if (loaded.length === 0) {
       const seeded = [DEFAULT_SESSION]
       persist(seeded)
       return seeded
     }
-    // Re-persist if migration filled in any configId values
     persist(loaded)
     return loaded
   })
 
   const [currentSessionId, setCurrentSessionIdState] = useState<string>(() => {
-    const loaded = loadSessions()
     const stored = localStorage.getItem(CURRENT_SESSION_KEY) ?? 'default'
+    if (userId) return stored
+    const loaded = loadSessions()
     return loaded.some(s => s.id === stored) ? stored : 'default'
   })
 
-  // Seed currentSessionId key if absent
   useEffect(() => {
+    if (!userId) return
+    supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .then(async ({ data, error }) => {
+        if (error) return
+        let rows = data ?? []
+        if (rows.length === 0) {
+          const { data: inserted } = await supabase
+            .from('sessions')
+            .upsert(toSessionRow(DEFAULT_SESSION, userId))
+            .select()
+          rows = inserted ?? []
+        }
+        const loaded = rows.map(fromSessionRow)
+        setSessions(loaded)
+        const stored = localStorage.getItem(CURRENT_SESSION_KEY) ?? 'default'
+        if (!loaded.some(s => s.id === stored)) {
+          localStorage.setItem(CURRENT_SESSION_KEY, 'default')
+          setCurrentSessionIdState('default')
+        }
+      })
+  }, [userId])
+
+  useEffect(() => {
+    if (userId) return
     if (!localStorage.getItem(CURRENT_SESSION_KEY)) {
       localStorage.setItem(CURRENT_SESSION_KEY, 'default')
     }
-  }, [])
+  }, [userId])
 
   const currentSession: Session =
     sessions.find(s => s.id === currentSessionId) ?? DEFAULT_SESSION
@@ -73,8 +102,6 @@ export function useSessions() {
     const trimmed = name.trim()
     if (!trimmed) return null
     if (sessions.length >= MAX_SESSIONS) return null
-
-    // Case-insensitive name uniqueness
     if (sessions.some(s => s.name.toLowerCase() === trimmed.toLowerCase())) return null
 
     let id = toSlug(trimmed)
@@ -83,9 +110,21 @@ export function useSessions() {
     }
 
     const session: Session = { id, name: trimmed, createdAt: new Date().toISOString(), configId }
-    const updated = [...sessions, session]
-    setSessions(updated)
-    persist(updated)
+
+    if (userId) {
+      setSessions(prev => [...prev, session])
+      supabase
+        .from('sessions')
+        .insert(toSessionRow(session, userId))
+        .then(({ error }) => {
+          if (error) setSessions(prev => prev.filter(s => s.id !== session.id))
+        })
+    } else {
+      const updated = [...sessions, session]
+      setSessions(updated)
+      persist(updated)
+    }
+
     return session
   }
 
@@ -95,14 +134,22 @@ export function useSessions() {
     if (!trimmed) return
     const updated = sessions.map(s => s.id === id ? { ...s, name: trimmed } : s)
     setSessions(updated)
-    persist(updated)
+    if (userId) {
+      supabase.from('sessions').update({ name: trimmed }).eq('id', id).eq('user_id', userId).then(() => {})
+    } else {
+      persist(updated)
+    }
   }
 
   function deleteSession(id: string): void {
     if (id === 'default') return
     const updated = sessions.filter(s => s.id !== id)
     setSessions(updated)
-    persist(updated)
+    if (userId) {
+      supabase.from('sessions').delete().eq('id', id).eq('user_id', userId).then(() => {})
+    } else {
+      persist(updated)
+    }
     if (currentSessionId === id) setCurrentSession('default')
   }
 
@@ -118,7 +165,16 @@ export function useSessions() {
     })
     if (!changed) return
     setSessions(updated)
-    persist(updated)
+    if (userId) {
+      supabase
+        .from('sessions')
+        .update({ config_id: toConfigId })
+        .eq('user_id', userId)
+        .eq('config_id', fromConfigId)
+        .then(() => {})
+    } else {
+      persist(updated)
+    }
   }
 
   return {

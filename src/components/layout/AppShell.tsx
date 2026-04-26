@@ -2,28 +2,32 @@ import { useState, type ReactNode } from 'react'
 import Header from './Header'
 import ResetDialog from '@/components/shared/ResetDialog'
 import type { Page, NavigateFn } from '@/App'
+import { supabase } from '@/lib/supabase'
 
 interface AppShellProps {
   currentPage: Page
   navigate: NavigateFn
+  userId: string
+  onSignOut: () => void
   children: ReactNode
 }
 
 const STORAGE_KEYS = [
-  'gronthee-username',
-  'gronthee:books',
-  'gronthee:preferences',
-  'gronthee:sessions',
   'gronthee:currentSessionId',
-  'gronthee:exportConfigs',
+  'gronthee:selectedModel',
+  'gronthee:migrated',
 ]
 
-export default function AppShell({ currentPage, navigate, children }: AppShellProps) {
+export default function AppShell({ currentPage, navigate, userId, onSignOut, children }: AppShellProps) {
   const [resetOpen, setResetOpen] = useState(false)
 
-  function handleReset() {
+  async function handleReset() {
+    await Promise.all([
+      supabase.from('export_configs').delete().eq('user_id', userId),
+      supabase.from('user_preferences').delete().eq('user_id', userId),
+    ])
     STORAGE_KEYS.forEach(key => localStorage.removeItem(key))
-    window.location.reload()
+    onSignOut()
   }
 
   return (
@@ -32,7 +36,13 @@ export default function AppShell({ currentPage, navigate, children }: AppShellPr
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
         {children}
       </main>
-      <footer className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 flex justify-center">
+      <footer className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 flex items-center justify-center gap-6">
+        <button
+          onClick={onSignOut}
+          className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+        >
+          Sign out
+        </button>
         <button
           onClick={() => setResetOpen(true)}
           className="text-xs text-red-400 hover:text-red-600 underline underline-offset-2 transition-colors"
@@ -42,7 +52,7 @@ export default function AppShell({ currentPage, navigate, children }: AppShellPr
       </footer>
       <ResetDialog
         open={resetOpen}
-        onConfirm={handleReset}
+        onConfirm={() => { void handleReset() }}
         onCancel={() => setResetOpen(false)}
       />
     </div>
