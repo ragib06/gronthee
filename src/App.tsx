@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import AppShell from '@/components/layout/AppShell'
 import ScannerPage from '@/components/scanner/ScannerPage'
@@ -6,13 +6,16 @@ import BookEditorPage from '@/components/editor/BookEditorPage'
 import HistoryPage from '@/components/history/HistoryPage'
 import ConfigsPage from '@/components/configs/ConfigsPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
+import LoginPage from '@/components/auth/LoginPage'
+import AuthCallback from '@/components/auth/AuthCallback'
+import { useAuth } from '@/hooks/useAuth'
 import { useBookHistory } from '@/hooks/useBookHistory'
 import { useSessions } from '@/hooks/useSessions'
 import { useExportConfigs } from '@/hooks/useExportConfigs'
 import { getDefaultModel, resolveModel } from '@/config/ai-config'
+import { supabase } from '@/lib/supabase'
 import type { BookMetadata, FieldConfidence, SelectedModel } from '@/types'
 
-const USERNAME_KEY = 'gronthee-username'
 const MODEL_KEY = 'gronthee:selectedModel'
 
 function loadSavedModel(): SelectedModel {
@@ -43,15 +46,14 @@ export interface EditorParams {
 export type NavigateFn = (page: Page, params?: EditorParams) => void
 
 function App() {
+  const { user, loading: authLoading, signOut } = useAuth()
+  const [username, setUsername] = useState<string | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+
   const [page, setPage] = useState<Page>('scan')
   const [editorParams, setEditorParams] = useState<EditorParams>({})
   const [selectedModel, setSelectedModel] = useState<SelectedModel>(loadSavedModel)
 
-  function handleModelChange(model: SelectedModel) {
-    saveModel(model)
-    setSelectedModel(model)
-  }
-  const [username, setUsername] = useState<string>(() => localStorage.getItem(USERNAME_KEY) ?? '')
   const { books, addBook, updateBook, deleteBook, reassignBooksToSession } = useBookHistory()
   const {
     sessions,
@@ -72,6 +74,37 @@ function App() {
     cloneConfig,
   } = useExportConfigs()
 
+  // Load profile when user is known
+  useEffect(() => {
+    if (!user) {
+      setUsername(null)
+      return
+    }
+    setProfileLoading(true)
+    supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        setUsername(data?.username ?? null)
+        setProfileLoading(false)
+      })
+  }, [user])
+
+  async function handleCreateProfile(name: string) {
+    if (!user) return
+    const { error } = await supabase
+      .from('profiles')
+      .insert({ id: user.id, username: name })
+    if (!error) setUsername(name)
+  }
+
+  function handleModelChange(model: SelectedModel) {
+    saveModel(model)
+    setSelectedModel(model)
+  }
+
   function handleDeleteSession(id: string) {
     reassignBooksToSession(id, 'default')
     deleteSession(id)
@@ -87,17 +120,37 @@ function App() {
     setPage(newPage)
   }
 
-  function handleUsernameSubmit(name: string) {
-    localStorage.setItem(USERNAME_KEY, name)
-    setUsername(name)
+  // Handle magic-link callback route
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback />
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginPage />
+  }
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-6 h-6 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+      </div>
+    )
   }
 
   if (!username) {
-    return <UsernameDialog onSubmit={handleUsernameSubmit} />
+    return <UsernameDialog onSubmit={handleCreateProfile} />
   }
 
   return (
-    <AppShell currentPage={page} navigate={navigate}>
+    <AppShell currentPage={page} navigate={navigate} onSignOut={signOut}>
       <AnimatePresence mode="wait">
         {page === 'scan' && (
           <ScannerPage
