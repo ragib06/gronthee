@@ -8,6 +8,7 @@ import ConfigsPage from '@/components/configs/ConfigsPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
 import LoginPage from '@/components/auth/LoginPage'
 import AuthCallback from '@/components/auth/AuthCallback'
+import LocalStorageMigrationDialog, { hasPendingMigration } from '@/components/shared/LocalStorageMigrationDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { useBookHistory } from '@/hooks/useBookHistory'
 import { useSessions } from '@/hooks/useSessions'
@@ -49,12 +50,13 @@ function App() {
   const { user, loading: authLoading, signOut } = useAuth()
   const [username, setUsername] = useState<string | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [showMigration, setShowMigration] = useState(false)
 
   const [page, setPage] = useState<Page>('scan')
   const [editorParams, setEditorParams] = useState<EditorParams>({})
   const [selectedModel, setSelectedModel] = useState<SelectedModel>(loadSavedModel)
 
-  const { books, addBook, updateBook, deleteBook, reassignBooksToSession } = useBookHistory()
+  const { books, addBook, updateBook, deleteBook, reassignBooksToSession } = useBookHistory(user?.id ?? null)
   const {
     sessions,
     currentSession,
@@ -89,6 +91,7 @@ function App() {
       .then(({ data }) => {
         setUsername(data?.username ?? null)
         setProfileLoading(false)
+        if (data?.username && hasPendingMigration()) setShowMigration(true)
       })
   }, [user])
 
@@ -97,7 +100,10 @@ function App() {
     const { error } = await supabase
       .from('profiles')
       .insert({ id: user.id, username: name })
-    if (!error) setUsername(name)
+    if (!error) {
+      setUsername(name)
+      if (hasPendingMigration()) setShowMigration(true)
+    }
   }
 
   function handleModelChange(model: SelectedModel) {
@@ -150,6 +156,13 @@ function App() {
   }
 
   return (
+    <>
+    {showMigration && user && (
+      <LocalStorageMigrationDialog
+        userId={user.id}
+        onDone={() => setShowMigration(false)}
+      />
+    )}
     <AppShell currentPage={page} navigate={navigate} onSignOut={signOut}>
       <AnimatePresence mode="wait">
         {page === 'scan' && (
@@ -210,6 +223,7 @@ function App() {
         )}
       </AnimatePresence>
     </AppShell>
+    </>
   )
 }
 
