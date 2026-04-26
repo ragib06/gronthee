@@ -29,7 +29,7 @@ export function useUserPreferences(userId: string | null) {
       .from('user_preferences')
       .select('*')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (data) setPreferences(fromPrefsRow(data))
       })
