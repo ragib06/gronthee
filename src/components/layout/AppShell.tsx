@@ -2,27 +2,30 @@ import { useState, type ReactNode } from 'react'
 import Header from './Header'
 import ResetDialog from '@/components/shared/ResetDialog'
 import type { Page, NavigateFn } from '@/App'
+import { supabase } from '@/lib/supabase'
 
 interface AppShellProps {
   currentPage: Page
   navigate: NavigateFn
+  userId: string
   onSignOut: () => void
   children: ReactNode
 }
 
 const STORAGE_KEYS = [
-  'gronthee:books',
-  'gronthee:preferences',
-  'gronthee:sessions',
   'gronthee:currentSessionId',
-  'gronthee:exportConfigs',
   'gronthee:selectedModel',
+  'gronthee:migrated',
 ]
 
-export default function AppShell({ currentPage, navigate, onSignOut, children }: AppShellProps) {
+export default function AppShell({ currentPage, navigate, userId, onSignOut, children }: AppShellProps) {
   const [resetOpen, setResetOpen] = useState(false)
 
-  function handleReset() {
+  async function handleReset() {
+    await Promise.all([
+      supabase.from('export_configs').delete().eq('user_id', userId),
+      supabase.from('user_preferences').delete().eq('user_id', userId),
+    ])
     STORAGE_KEYS.forEach(key => localStorage.removeItem(key))
     onSignOut()
   }
@@ -49,7 +52,7 @@ export default function AppShell({ currentPage, navigate, onSignOut, children }:
       </footer>
       <ResetDialog
         open={resetOpen}
-        onConfirm={handleReset}
+        onConfirm={() => { void handleReset() }}
         onCancel={() => setResetOpen(false)}
       />
     </div>

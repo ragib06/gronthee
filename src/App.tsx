@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useBookHistory } from '@/hooks/useBookHistory'
 import { useSessions } from '@/hooks/useSessions'
 import { useExportConfigs } from '@/hooks/useExportConfigs'
+import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { getDefaultModel, resolveModel } from '@/config/ai-config'
 import { supabase } from '@/lib/supabase'
 import type { BookMetadata, FieldConfidence, SelectedModel } from '@/types'
@@ -74,7 +75,8 @@ function App() {
     updateConfig,
     deleteConfig,
     cloneConfig,
-  } = useExportConfigs()
+  } = useExportConfigs(user?.id ?? null)
+  const { preferences, recordCorrections } = useUserPreferences(user?.id ?? null)
 
   // Load profile when user is known
   useEffect(() => {
@@ -163,7 +165,7 @@ function App() {
         onDone={() => setShowMigration(false)}
       />
     )}
-    <AppShell currentPage={page} navigate={navigate} onSignOut={signOut}>
+    <AppShell currentPage={page} navigate={navigate} userId={user.id} onSignOut={signOut}>
       <AnimatePresence mode="wait">
         {page === 'scan' && (
           <ScannerPage
@@ -177,6 +179,7 @@ function App() {
             books={books}
             configs={configs}
             getConfig={getConfig}
+            preferences={preferences}
             onSelectSession={setCurrentSession}
             onCreateSession={createSession}
             onRenameSession={renameSession}
@@ -195,6 +198,7 @@ function App() {
             currentSession={currentSession}
             onAdd={addBook}
             onUpdate={updateBook}
+            onRecordCorrections={recordCorrections}
           />
         )}
         {page === 'history' && (

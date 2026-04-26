@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react'
 import { ChevronLeft, ImageOff, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { NavigateFn } from '@/App'
 import type { BookMetadata, FieldConfidence, Session } from '@/types'
-import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { uploadImagesToR2 } from '@/services/r2Storage'
 import BookForm from './BookForm'
 
@@ -17,6 +16,7 @@ interface BookEditorPageProps {
   currentSession: Session
   onAdd: (book: BookMetadata) => void
   onUpdate: (book: BookMetadata) => void
+  onRecordCorrections: (original: Partial<BookMetadata>, saved: Omit<BookMetadata, 'id' | 'sessionId'>) => void
 }
 
 export default function BookEditorPage({
@@ -29,6 +29,7 @@ export default function BookEditorPage({
   currentSession,
   onAdd,
   onUpdate,
+  onRecordCorrections,
 }: BookEditorPageProps) {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [zoomLevel, setZoomLevel] = useState(1)
@@ -76,7 +77,6 @@ export default function BookEditorPage({
   const isEdit = !!book
   const initialValues: Partial<BookMetadata> = book ?? pendingMetadata ?? {}
   const scanDate = book?.scanDate ?? new Date().toISOString().slice(0, 10)
-  const { recordCorrections } = useUserPreferences()
 
   async function handleSave(data: Omit<BookMetadata, 'id' | 'sessionId'>) {
     if (isEdit && book) {
@@ -109,7 +109,7 @@ export default function BookEditorPage({
       }
     }
 
-    if (pendingMetadata) recordCorrections(pendingMetadata, data)
+    if (pendingMetadata) onRecordCorrections(pendingMetadata, data)
     onAdd({
       ...data,
       id: bookId,

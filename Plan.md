@@ -797,3 +797,28 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Optimistic mutations with rollback**: `createSession` adds to state immediately and rolls back on DB error; `renameSession` / `deleteSession` / `reassignSessionsConfig` fire-and-forget (no rollback needed for these).
 - **Migration dialog extended**: upserts non-default sessions before books; clears both `gronthee:sessions` and `gronthee:books` keys on success.
 - **Friendly import errors (Phase 6)**: `parseImported` wraps validation errors with a Gronthee-branded prefix ("This file isn't a valid Gronthee export config — …") so users get actionable messages rather than internal technical strings.
+
+## 15. Phase 12 — Supabase Backend: Export Configs + Preferences (Phase 3, implemented 2026-04-26)
+
+**Goal**: Export configs and user preferences (author correction maps) persist in Supabase across devices. Completes the full data-layer migration.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `src/lib/db-mappers.ts` | Added `toConfigRow`/`fromConfigRow`, `toPrefsRow`/`fromPrefsRow` |
+| `src/hooks/useExportConfigs.ts` | Rewritten: accepts `userId`; Supabase `export_configs` table; Dishari built-in stays bundled; optimistic mutations with rollback |
+| `src/hooks/useUserPreferences.ts` | Rewritten: accepts `userId`; loads from `user_preferences` on mount; `recordCorrections` upserts via Supabase |
+| `src/utils/applyPreferences.ts` | Removed `loadPreferences` (no longer needed); `applyPreferences` kept as pure function |
+| `src/components/scanner/ScannerPage.tsx` | Accepts `preferences: UserPreferences` prop; removed direct `loadPreferences()` call |
+| `src/components/editor/BookEditorPage.tsx` | Accepts `onRecordCorrections` prop; removed `useUserPreferences` hook call |
+| `src/components/layout/AppShell.tsx` | Accepts `userId`; Reset now deletes `export_configs` + `user_preferences` Supabase rows; localStorage keys trimmed to `currentSessionId`, `selectedModel`, `migrated` |
+| `src/App.tsx` | Wires `useUserPreferences(userId)` centrally; passes `preferences` to ScannerPage and `recordCorrections` to BookEditorPage; passes `userId` to AppShell and `useExportConfigs` |
+| `src/hooks/useExportConfigs.test.ts` | Rewritten with Supabase mock; removed localStorage persistence tests |
+| `src/test/integration/export-configs-backward-compat.test.tsx` | Updated mock setup; all `useExportConfigs()` calls pass `USER_ID` |
+
+### Design decisions
+- **Preferences centralized in App.tsx**: `useUserPreferences(userId)` called once at the top; `preferences` passed as prop to `ScannerPage` and `recordCorrections` passed to `BookEditorPage`. Avoids two separate Supabase fetches per page render.
+- **Sync optimistic API preserved**: `createConfig`, `updateConfig`, `deleteConfig`, `cloneConfig` return synchronously (optimistic) and fire Supabase ops fire-and-forget with rollback on error. `ConfigsPage` props interface unchanged.
+- **Reset deletes configs + prefs from Supabase**: books and sessions remain in Supabase on reset (consistent with Phase 2 behavior — reset clears local cache and signs out, not a full data purge). Export configs and preferences are cleared since they replace what was previously cleared from localStorage.
+- **localStorage keys**: after Phase 3, only `gronthee:currentSessionId`, `gronthee:selectedModel`, and `gronthee:migrated` remain as meaningful localStorage keys.
