@@ -65,7 +65,7 @@ function App() {
     renameSession,
     deleteSession,
     reassignSessionsConfig,
-  } = useSessions()
+  } = useSessions(user?.id ?? null)
   const {
     configs,
     getConfig,

@@ -1,8 +1,10 @@
-import type { BookMetadata } from '@/types'
+import type { BookMetadata, Session } from '@/types'
 import type { Database } from './supabase-types'
 
 type BookRow = Database['public']['Tables']['books']['Row']
 type BookInsert = Database['public']['Tables']['books']['Insert']
+type SessionRow = Database['public']['Tables']['sessions']['Row']
+type SessionInsert = Database['public']['Tables']['sessions']['Insert']
 
 export function toBookRow(book: BookMetadata, userId: string): BookInsert {
   return {
@@ -33,6 +35,25 @@ export function toBookRow(book: BookMetadata, userId: string): BookInsert {
     summary: book.summary || null,
     image_urls: book.imageUrls ?? null,
     raw_ai_output: book.rawAIOutput ?? null,
+  }
+}
+
+export function toSessionRow(session: Session, userId: string): SessionInsert {
+  return {
+    id: session.id,
+    user_id: userId,
+    name: session.name,
+    config_id: session.configId,
+    created_at: session.createdAt,
+  }
+}
+
+export function fromSessionRow(row: SessionRow): Session {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at,
+    configId: row.config_id,
   }
 }
 

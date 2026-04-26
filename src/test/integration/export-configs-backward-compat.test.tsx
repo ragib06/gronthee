@@ -1,4 +1,8 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: { from: vi.fn() },
+}))
 import { renderHook, act } from '@testing-library/react'
 import { useSessions } from '@/hooks/useSessions'
 import { useExportConfigs } from '@/hooks/useExportConfigs'

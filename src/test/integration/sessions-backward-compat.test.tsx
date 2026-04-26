@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useSessions } from '@/hooks/useSessions'
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: { from: vi.fn() },
+}))
 
 const SESSIONS_KEY = 'gronthee:sessions'
 const CURRENT_KEY = 'gronthee:currentSessionId'
