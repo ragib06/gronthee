@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { PROMPT } from '../src/services/ai/prompt'
+import { PROMPT } from './prompt'
 
 type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'openrouter'
 
