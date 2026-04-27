@@ -832,7 +832,7 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 | File | Change |
 |------|--------|
 | `api/scan.ts` | **New** — Vercel Edge Function; verifies Supabase JWT; routes to Anthropic/OpenAI/Gemini/OpenRouter with streaming SSE response |
-| `api/cron/keepalive.ts` | **New** — Vercel cron handler; Supabase SELECT to prevent free-tier pause |
+| `api/cron/keepalive.ts` | **New** — Vercel cron handler skeleton; Supabase SELECT to prevent free-tier pause (auth hardening landed in Phase 15) |
 | `src/services/ai/proxy.ts` | **New** — client-side proxy; fetches `/api/scan` with Bearer token; reads SSE stream; returns `ParsedAIResponse` |
 | `src/services/ai/index.ts` | Replaced 4 provider imports with `extractViaProxy` |
 | `src/services/ai/anthropic.ts` | **Deleted** — logic moved into `api/scan.ts` |
@@ -874,3 +874,21 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Auth shape mirrors `/api/scan`**: Bearer Supabase JWT, verified via `supabase.auth.getUser(token)` using `SUPABASE_URL` + `SUPABASE_ANON_KEY`. Reusing the pattern keeps both Vercel functions consistent.
 - **No-session degradation**: if `supabase.auth.getSession()` returns null on the client (e.g. a stale UI state during sign-out), `uploadImagesToR2` returns `{ urls: [], failed: 0 }` so the book still saves locally with the existing amber-warning UX, instead of throwing.
 - **Server env vars added**: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_KEY`, `CLOUDFLARE_R2_BUCKET_NAME`, `CLOUDFLARE_R2_PUBLIC_URL`. Removed from Vercel + `.env.local`: `VITE_CLOUDFLARE_ACCOUNT_ID`, `VITE_CLOUDFLARE_R2_ACCESS_KEY_ID`, `VITE_CLOUDFLARE_R2_API_KEY`, `VITE_CLOUDFLARE_R2_BUCKET_NAME`, `VITE_CLOUDFLARE_R2_PUBLIC_URL`.
+
+## 18. Phase 15 — Supabase Keepalive Cron (Phase 6, implemented 2026-04-26)
+
+**Goal**: Free-tier Supabase project doesn't pause after 7 days of inactivity. Daily lightweight `SELECT` keeps the project alive.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `api/cron/keepalive.ts` | Hardened — verifies `Authorization: Bearer ${CRON_SECRET}`, queries `profiles` (not `books`), returns JSON `{ ok: true }` |
+| `vercel.json` | `crons` entry already present from Phase 13 (`/api/cron/keepalive` at `0 12 * * *`); unchanged this phase |
+
+### Design decisions
+- **`CRON_SECRET` bearer check**: Vercel automatically attaches `Authorization: Bearer ${CRON_SECRET}` to scheduled cron requests. Verifying it prevents anyone from hitting the public `/api/cron/keepalive` URL and burning the daily query against the service-role key.
+- **Query `profiles` table**: matches the spec in `temp_plans/plan_backend_supabase.md` Phase 6. Any existing table works for keepalive — `profiles` is small and always present.
+- **Service-role key for the SELECT**: bypasses RLS. The endpoint never returns row data, only a count, so the elevated key has no exfiltration surface beyond the auth-gated response shape.
+- **Cron schedule**: `0 12 * * *` (daily at 12:00 UTC). Hobby plan limits Vercel to 2 cron jobs; this uses one slot.
+- **New env var**: `CRON_SECRET` must be set in Vercel for production — Vercel both generates the value and forwards it on each cron invocation.
