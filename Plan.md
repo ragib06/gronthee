@@ -911,3 +911,26 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **`.env.example` is intentionally exhaustive**: a fresh contributor needs to know every var that exists, even those they won't set locally (e.g. `CRON_SECRET` is Vercel-managed). Empty values document shape; comments explain which endpoint consumes which group.
 - **`temp_plans/` left alone**: those are historical planning docs. Stale `VITE_*` references there are intentional — they describe pre-migration state. `Plan.md` is the canonical history.
 - **`npx supabase gen types typescript` skipped**: schema unchanged in this phase; existing `src/lib/supabase-types.ts` is current.
+
+## 20. Phase 17 — Email + password auth (implemented 2026-04-26)
+
+**Goal**: Let users sign in with email + password in addition to magic link, plus a self-serve forgot-password flow.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `src/hooks/useAuth.ts` | Replaced single `signIn` with `signInWithMagicLink`, `signInWithPassword`, `signUpWithPassword`, `sendPasswordReset`, `updatePassword`. `signOut` unchanged. |
+| `src/components/auth/LoginPage.tsx` | Rewritten — segmented control toggles between Magic link and Password tabs. Password tab has Sign in / Sign up sub-modes plus a Forgot password? sub-mode. Sign-up validates min-length and confirm-match locally before calling Supabase. |
+| `src/components/auth/ResetPasswordPage.tsx` | **New** — handles the recovery redirect at `/auth/reset-password`. Listens for `PASSWORD_RECOVERY` (or `SIGNED_IN`) on `onAuthStateChange`, shows a "verifying" state for up to 3 s, then renders a new-password form that calls `supabase.auth.updateUser({ password })`. On success redirects to `/`. |
+| `src/App.tsx` | Routes `/auth/reset-password` to the new page (alongside the existing `/auth/callback` route). |
+| `REQUIREMENTS.md` | §0 expanded — magic link, password sign-in/sign-up, forgot-password flow. |
+| `vercel.json` | No change — existing SPA rewrite (`/((?!api/).*)` → `/index.html`) already covers `/auth/reset-password`. |
+
+### Design decisions
+- **One screen, two tabs (not separate routes)**: keeps the surface area small and lets users discover both methods immediately. Switching tabs resets in-flight error/info state and password fields so credentials don't leak between modes.
+- **Sub-modes inside Password tab**: Sign in / Sign up / Forgot password share the same email + password layout with conditional fields. Avoids three near-duplicate components.
+- **Min length 8, confirm match — client-side only at the form level**: Supabase enforces its own server-side rules (configurable per project), so the client check is purely a UX guard against an obvious typo.
+- **`emailRedirectTo` for sign-up points at `/auth/callback`**: confirmation link reuses the existing PKCE exchange path. `resetPasswordForEmail`'s `redirectTo` points at `/auth/reset-password` because that flow needs the new dedicated page.
+- **Recovery page waits up to 3s for `PASSWORD_RECOVERY` event**: Supabase JS parses the URL fragment asynchronously. If no session shows up by then, the link is invalid/expired and we surface a clear error rather than leaving a spinner.
+- **Server-side prerequisite (out of code)**: Supabase project must have the Email provider enabled with password support (Auth → Providers → Email). Email confirmations on sign-up are optional — the UI handles both branches (immediate session vs. "check your email").

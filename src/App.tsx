@@ -8,6 +8,7 @@ import ConfigsPage from '@/components/configs/ConfigsPage'
 import UsernameDialog from '@/components/shared/UsernameDialog'
 import LoginPage from '@/components/auth/LoginPage'
 import AuthCallback from '@/components/auth/AuthCallback'
+import ResetPasswordPage from '@/components/auth/ResetPasswordPage'
 import LocalStorageMigrationDialog, { hasPendingMigration } from '@/components/shared/LocalStorageMigrationDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { useBookHistory } from '@/hooks/useBookHistory'
@@ -131,6 +132,10 @@ function App() {
   // Handle magic-link callback route
   if (window.location.pathname === '/auth/callback') {
     return <AuthCallback />
+  }
+
+  if (window.location.pathname === '/auth/reset-password') {
+    return <ResetPasswordPage />
   }
 
   if (authLoading) {
