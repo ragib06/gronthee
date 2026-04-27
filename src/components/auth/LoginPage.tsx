@@ -80,6 +80,13 @@ export default function LoginPage() {
         // Email confirmations disabled — already signed in.
         return
       }
+      // Supabase obfuscates already-registered emails by returning a fake user
+      // with no identities and no session, and sends no email. Detect and
+      // direct the user to sign in or reset their password instead.
+      if ((data.user?.identities?.length ?? 0) === 0) {
+        setError('This email is already registered. Sign in, or use "Forgot password?" to set a new password.')
+        return
+      }
       setInfo(`Confirmation link sent to ${trimmedEmail}. Confirm to finish signing up.`)
       return
     }
