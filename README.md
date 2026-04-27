@@ -351,3 +351,5 @@ The browser-side proxy (`src/services/ai/proxy.ts`) is provider-agnostic — it 
 ## License
 
 MIT
+
+Developed by Ragib Ahsan
