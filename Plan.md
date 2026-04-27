@@ -892,3 +892,22 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Service-role key for the SELECT**: bypasses RLS. The endpoint never returns row data, only a count, so the elevated key has no exfiltration surface beyond the auth-gated response shape.
 - **Cron schedule**: `0 12 * * *` (daily at 12:00 UTC). Hobby plan limits Vercel to 2 cron jobs; this uses one slot.
 - **New env var**: `CRON_SECRET` must be set in Vercel for production — Vercel both generates the value and forwards it on each cron invocation.
+
+## 19. Phase 16 — Cleanup, env audit, docs (Phase 7, implemented 2026-04-26)
+
+**Goal**: Close out the Supabase backend migration (Phases 10–15 above; Phases 1–6 of `temp_plans/plan_backend_supabase.md`). No stray `VITE_*_API_KEY` references in `src/` or `api/`. `.env.example` lists every server-side var Vercel needs. `README.md` and `REQUIREMENTS.md` reflect auth, multi-user isolation, server-side keys, R2 presign, and keepalive.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `.env.example` | Re-expanded — explicitly enumerates all server-side vars required by `/api/scan`, `/api/r2/presign`, `/api/cron/keepalive`, alongside the two browser-side `VITE_SUPABASE_*` vars |
+| `README.md` | Setup steps rewritten — keys go to Vercel (or local `.env.local` server-side), not `VITE_*`; "Data Storage" replaced with Supabase tables; "Adding an AI Provider" rewritten around `api/scan.ts` proxy; new "Authentication" section documents magic-link + RLS |
+| `REQUIREMENTS.md` | New §0 "Authentication & Multi-User Data Isolation"; username, history, and preference sections updated to Supabase persistence |
+| `Plan.md` | This section appended |
+
+### Design decisions
+- **No code changes in `src/` or `api/`**: post-audit grep confirmed only `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` remain in `src/lib/supabase.ts`; both are public (anon key) by design. `api/scan.ts`, `api/r2/presign.ts`, `api/cron/keepalive.ts` already read server-side env vars without `VITE_` prefix.
+- **`.env.example` is intentionally exhaustive**: a fresh contributor needs to know every var that exists, even those they won't set locally (e.g. `CRON_SECRET` is Vercel-managed). Empty values document shape; comments explain which endpoint consumes which group.
+- **`temp_plans/` left alone**: those are historical planning docs. Stale `VITE_*` references there are intentional — they describe pre-migration state. `Plan.md` is the canonical history.
+- **`npx supabase gen types typescript` skipped**: schema unchanged in this phase; existing `src/lib/supabase-types.ts` is current.
