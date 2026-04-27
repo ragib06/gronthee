@@ -23,16 +23,46 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signIn(email: string) {
+  async function signInWithMagicLink(email: string) {
     return supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
   }
 
+  async function signInWithPassword(email: string, password: string) {
+    return supabase.auth.signInWithPassword({ email, password })
+  }
+
+  async function signUpWithPassword(email: string, password: string) {
+    return supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    })
+  }
+
+  async function sendPasswordReset(email: string) {
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
+  }
+
+  async function updatePassword(password: string) {
+    return supabase.auth.updateUser({ password })
+  }
+
   async function signOut() {
     return supabase.auth.signOut()
   }
 
-  return { ...state, signIn, signOut }
+  return {
+    ...state,
+    signInWithMagicLink,
+    signInWithPassword,
+    signUpWithPassword,
+    sendPasswordReset,
+    updatePassword,
+    signOut,
+  }
 }
