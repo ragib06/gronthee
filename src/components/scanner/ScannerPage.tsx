@@ -19,7 +19,7 @@ interface ScannerPageProps {
   navigate: NavigateFn
   selectedModel: SelectedModel
   onModelChange: (m: SelectedModel) => void
-  username: string
+  displayName: string
   sessions: Session[]
   currentSession: Session
   books: BookMetadata[]
@@ -45,7 +45,7 @@ export default function ScannerPage({
   navigate,
   selectedModel,
   onModelChange,
-  username,
+  displayName,
   sessions,
   currentSession,
   books,
@@ -151,7 +151,7 @@ export default function ScannerPage({
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <p className="text-sm text-gray-400 mb-0.5">Welcome, {username}</p>
+          <p className="text-sm text-gray-400 mb-0.5">Welcome, {displayName}</p>
           <h1 className="text-2xl font-semibold text-gray-900">Scan a Book</h1>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-xs text-gray-400">Session:</span>

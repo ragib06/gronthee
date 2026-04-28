@@ -77,8 +77,9 @@ export function useSessions(userId: string | null = null) {
         setSessions(loaded)
         const stored = localStorage.getItem(CURRENT_SESSION_KEY) ?? 'default'
         if (!loaded.some(s => s.id === stored)) {
-          localStorage.setItem(CURRENT_SESSION_KEY, 'default')
-          setCurrentSessionIdState('default')
+          const fallback = loaded[0]?.id ?? 'default'
+          localStorage.setItem(CURRENT_SESSION_KEY, fallback)
+          setCurrentSessionIdState(fallback)
         }
       })
   }, [userId])

@@ -14,10 +14,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return
   }
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!secretKey) {
+    res.statusCode = 500
+    res.end('Supabase secret key not configured')
+    return
+  }
+  const supabase = createClient(process.env.SUPABASE_URL!, secretKey)
   const { error } = await supabase.from('profiles').select('count').limit(1)
   if (error) {
     res.statusCode = 500
