@@ -42,6 +42,13 @@ export function useAuth() {
     })
   }
 
+  async function signInWithGoogle() {
+    return supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+  }
+
   async function sendPasswordReset(email: string) {
     return supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
@@ -61,6 +68,7 @@ export function useAuth() {
     signInWithMagicLink,
     signInWithPassword,
     signUpWithPassword,
+    signInWithGoogle,
     sendPasswordReset,
     updatePassword,
     signOut,

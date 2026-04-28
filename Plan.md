@@ -934,3 +934,22 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **`emailRedirectTo` for sign-up points at `/auth/callback`**: confirmation link reuses the existing PKCE exchange path. `resetPasswordForEmail`'s `redirectTo` points at `/auth/reset-password` because that flow needs the new dedicated page.
 - **Recovery page waits up to 3s for `PASSWORD_RECOVERY` event**: Supabase JS parses the URL fragment asynchronously. If no session shows up by then, the link is invalid/expired and we surface a clear error rather than leaving a spinner.
 - **Server-side prerequisite (out of code)**: Supabase project must have the Email provider enabled with password support (Auth → Providers → Email). Email confirmations on sign-up are optional — the UI handles both branches (immediate session vs. "check your email").
+
+## 21. Phase 18 — Google OAuth sign-in (implemented 2026-04-27)
+
+**Goal**: Let users sign in / sign up with Google via Supabase OAuth, alongside magic link and password.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `src/hooks/useAuth.ts` | Added `signInWithGoogle()` calling `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: <origin>/auth/callback } })`. |
+| `src/components/auth/LoginPage.tsx` | Added "Continue with Google" button at the top of the auth card with a brand-colored Google glyph and an "or" divider above the existing magic link / password tabs. |
+| `REQUIREMENTS.md` | §0 expanded — Google added to sign-in methods; new bullet describes the OAuth flow and Supabase prerequisite. |
+
+### Design decisions
+- **Reuse the existing `/auth/callback` page**: it already handles the PKCE `code` exchange, so Google redirects there with no new route or code path.
+- **Single primary Google button (not a tab)**: OAuth is a one-tap flow with no fields, so a tab would feel empty. Putting it above the tabs makes it the most prominent option, which matches user expectations from other apps.
+- **Inline SVG Google glyph**: avoids pulling in a brand-icons dependency and keeps the button rendering deterministic.
+- **No account-linking UI**: Supabase auto-links the OAuth identity to an existing email-based row when emails match, so a user who previously used magic link / password with the same Gmail address keeps the same `auth.users.id`. No client-side merge logic needed.
+- **Server-side prerequisite (out of code)**: Google provider must be enabled in Supabase (Auth → Providers → Google) with a Client ID + Secret from Google Cloud Console, and Supabase's callback URL (`https://<project>.supabase.co/auth/v1/callback`) added to the Google OAuth client's "Authorized redirect URIs".
