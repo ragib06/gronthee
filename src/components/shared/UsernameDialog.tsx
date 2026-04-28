@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 
 interface UsernameDialogProps {
-  onSubmit: (username: string) => void
+  onSubmit: (username: string, fullName: string | null) => void
 }
 
 export default function UsernameDialog({ onSubmit }: UsernameDialogProps) {
-  const [value, setValue] = useState('')
+  const [username, setUsername] = useState('')
+  const [fullName, setFullName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -15,8 +16,10 @@ export default function UsernameDialog({ onSubmit }: UsernameDialogProps) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const trimmed = value.trim()
-    if (trimmed) onSubmit(trimmed)
+    const trimmedUsername = username.trim()
+    if (!trimmedUsername) return
+    const trimmedFullName = fullName.trim()
+    onSubmit(trimmedUsername, trimmedFullName || null)
   }
 
   return (
@@ -32,21 +35,40 @@ export default function UsernameDialog({ onSubmit }: UsernameDialogProps) {
         transition={{ duration: 0.15 }}
       >
         <h3 className="text-base font-semibold text-gray-900 mb-1">Welcome to Gronthee</h3>
-        <p className="text-sm text-gray-500 mb-4">Enter a username to get started.</p>
-        <form onSubmit={handleSubmit}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={value}
-            onChange={e => setValue(e.target.value.replace(/\s/g, ''))}
-            placeholder="Your username"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-5"
-            spellCheck={false}
-          />
-          <div className="flex justify-end">
+        <p className="text-sm text-gray-500 mb-4">Set up your profile to get started.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Username <span className="text-gray-400">(letters and numbers only)</span>
+            </label>
+            <input
+              ref={inputRef}
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+              placeholder="yourname"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Full Name <span className="text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              placeholder="Your name"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              autoComplete="name"
+            />
+          </div>
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
-              disabled={!value.trim()}
+              disabled={!username.trim()}
               className="px-4 py-2 text-sm rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
               Continue

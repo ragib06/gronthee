@@ -51,6 +51,7 @@ export type NavigateFn = (page: Page, params?: EditorParams) => void
 function App() {
   const { user, loading: authLoading, signOut } = useAuth()
   const [username, setUsername] = useState<string | null>(null)
+  const [fullName, setFullName] = useState<string | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [showMigration, setShowMigration] = useState(false)
 
@@ -83,28 +84,31 @@ function App() {
   useEffect(() => {
     if (!user) {
       setUsername(null)
+      setFullName(null)
       return
     }
     setProfileLoading(true)
     supabase
       .from('profiles')
-      .select('username')
+      .select('username, full_name')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
         setUsername(data?.username ?? null)
+        setFullName(data?.full_name ?? null)
         setProfileLoading(false)
         if (data?.username && hasPendingMigration()) setShowMigration(true)
       })
   }, [user])
 
-  async function handleCreateProfile(name: string) {
+  async function handleCreateProfile(name: string, full: string | null) {
     if (!user) return
     const { error } = await supabase
       .from('profiles')
-      .insert({ id: user.id, username: name })
+      .insert({ id: user.id, username: name, full_name: full })
     if (!error) {
       setUsername(name)
+      setFullName(full)
       if (hasPendingMigration()) setShowMigration(true)
     }
   }
@@ -178,7 +182,7 @@ function App() {
             navigate={navigate}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
-            username={username}
+            displayName={fullName ?? username}
             sessions={sessions}
             currentSession={currentSession}
             books={books}

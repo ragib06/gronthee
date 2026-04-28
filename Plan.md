@@ -953,3 +953,66 @@ Phase 7 — Image Storage   Cloudflare R2 upload on save (implemented 2026-04-23
 - **Inline SVG Google glyph**: avoids pulling in a brand-icons dependency and keeps the button rendering deterministic.
 - **No account-linking UI**: Supabase auto-links the OAuth identity to an existing email-based row when emails match, so a user who previously used magic link / password with the same Gmail address keeps the same `auth.users.id`. No client-side merge logic needed.
 - **Server-side prerequisite (out of code)**: Google provider must be enabled in Supabase (Auth → Providers → Google) with a Client ID + Secret from Google Cloud Console, and Supabase's callback URL (`https://<project>.supabase.co/auth/v1/callback`) added to the Google OAuth client's "Authorized redirect URIs".
+
+## 22. Phase 19 — Optional full name + alphanumeric username (implemented 2026-04-27)
+
+**Goal**: Capture an optional display name during first-run profile setup, enforce alphanumeric usernames, and use the display name (with username fallback) in the Scan page greeting.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/20260427000000_add_full_name_to_profiles.sql` | **New** — adds `full_name text` (nullable) to `profiles`. |
+| `src/lib/supabase-types.ts` | `profiles` Row/Insert/Update gain `full_name: string \| null`. |
+| `src/components/shared/UsernameDialog.tsx` | Two-field form: required Username (input filtered to `[A-Za-z0-9]` on every keystroke) and optional Full Name. `onSubmit` signature widened to `(username, fullName \| null)`. |
+| `src/App.tsx` | Tracks `fullName` alongside `username`; loads `full_name` from `profiles`; persists it on insert; passes `displayName = fullName ?? username` to `ScannerPage`. |
+| `src/components/scanner/ScannerPage.tsx` | `username` prop renamed to `displayName`; greeting renders "Welcome, {displayName}". |
+| `REQUIREMENTS.md` | §1 username bullet expanded — covers Full Name field, alphanumeric rule, greeting fallback, and filename invariant. |
+
+### Design decisions
+- **Alphanumeric enforced via input sanitization, not validation**: the `onChange` handler strips disallowed chars in real time so the user never has to read an error message — matches the previous whitespace-strip behavior.
+- **Full Name is free-form (no length cap, no character filter)**: it's a display label, not an identifier; users may want non-Latin script, hyphens, apostrophes, etc.
+- **CSV filenames keep using `username`, not `full_name`**: filenames must remain filesystem-safe across all OSes. The username is the only guaranteed slug-safe identifier on the profile row.
+- **Separate `displayName` prop on `ScannerPage` (not overloading `username`)**: keeps the slug-vs-label distinction explicit at the component boundary. Other consumers (HistoryPage, ExportSessionDialog) continue to receive the slug-safe `username` for filename generation.
+- **Migration is additive and nullable**: existing profile rows simply have `full_name = NULL` and fall through to the username greeting — no backfill needed.
+
+## 23. Phase 20 — Per-user session ids (composite PK) (implemented 2026-04-27)
+
+**Goal**: Fix a multi-user data bug where a globally-unique `sessions.id` PK caused new accounts to silently end up with zero sessions when an earlier account already owned an id (e.g. `default`).
+
+**Bug**: `sessions.id text PRIMARY KEY` is global. The first signed-up account upserts `{id:'default', user_id:A}`. Every later account's `useSessions` effect tries to upsert the same id; under RLS the row belongs to user A so the upsert no-ops and returns nothing — `setSessions([])`. The new user sees no session chips on History, an empty Export dialog, and books they save get `session_id='default'` which the DB-side FK satisfies by pointing at user A's row (cross-account leak hidden from the client by RLS on read).
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/20260427010000_sessions_composite_pk.sql` | **New** — drops the single-column PK and FK, adds composite PK `(user_id, id)` on `sessions`, backfills any orphan-but-referenced session rows from `books`, then re-adds the FK as composite `(user_id, session_id) → sessions(user_id, id)`. |
+| `src/hooks/useSessions.ts` | When the stored `currentSessionId` does not match any loaded session, fall back to `loaded[0].id` instead of the hard-coded `'default'`. Avoids stranding a user on an id that doesn't exist for them. |
+| `REQUIREMENTS.md` | §1 sessions persistence bullet updated to describe the composite PK and FK invariants. |
+
+### Design decisions
+- **Composite PK over per-user generated id**: keeps human-readable slug ids (`default`, `fiction`, `cookbooks`) while letting them coexist across users. Generating a unique suffix per user would have made every id opaque for no real gain.
+- **Backfill orphan sessions instead of nullifying book.session_id**: preserves the user's data — a book that previously pointed at the (cross-user) `default` row gets its own `default` row created in the migration, keeping the historical grouping intact.
+- **Composite FK uses `MATCH SIMPLE` (default)**: a NULL `session_id` skips the FK check, so books with no session (e.g. after a session deletion under `ON DELETE SET NULL`) remain valid.
+- **No client code change for `createSession` collision check**: it already only checks the user's own sessions for id reuse, which now matches the DB semantics under the composite PK.
+
+## 24. Phase 21 — Optional account deletion in Reset dialog (implemented 2026-04-27)
+
+**Goal**: Let a user fully remove their account (and all owned rows) from the database via the existing "Reset all data" dialog.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `api/auth/delete-user.ts` | **New** — Vercel Function. Verifies the caller's Supabase JWT with the anon-key client, then uses the service-role key to call `supabase.auth.admin.deleteUser(userId)`. The auth deletion cascades through every user-owned table via the existing `ON DELETE CASCADE` FKs to `auth.users`. |
+| `src/components/shared/ResetDialog.tsx` | Adds a "Delete my account" checkbox (unchecked by default; resets each time the dialog opens). Confirm-button label switches to "Delete account" when checked. `onConfirm` signature widened to `(deleteAccount: boolean) => void`. |
+| `src/components/layout/AppShell.tsx` | `handleReset` accepts the flag. When true, calls `/api/auth/delete-user` with `Authorization: Bearer <access_token>`; on non-OK shows an alert and aborts. When false, retains the existing per-table delete behaviour. localStorage cleanup + `onSignOut()` run in both branches. |
+| `REQUIREMENTS.md` | §0 + Reset All Data bullet expanded to cover the new opt-in. |
+
+### Design decisions
+- **Server-side admin call, not client RPC**: the browser only ever holds the anon key, which has no permission to mutate `auth.users`. The dedicated Function isolates the service-role key the same way `/api/scan`, `/api/r2/presign`, and `/api/cron/keepalive` already do.
+- **Reuse cascade FKs over manual deletes**: every user-scoped table already has `REFERENCES auth.users ON DELETE CASCADE`, so a single `auth.admin.deleteUser` is atomic and exhaustive — no risk of partial-delete state if one table query fails.
+- **Skip `export_configs` / `user_preferences` deletes when account is being removed**: redundant work; cascade handles it.
+- **R2 objects intentionally not removed**: matches the existing soft-reset behaviour (book deletion also leaves R2 objects). Cleaning R2 would require listing the user's `bookId` prefixes and issuing per-object deletes — left as a future task.
+- **Checkbox resets on dialog re-open**: prevents an accidental destructive default from a previous session of the dialog.
+- **Endpoint requires bearer token only — no body**: deletion always targets the authenticated caller. Refusing to accept an arbitrary user id removes the most dangerous misuse path even if the service-role key leaks somehow into the request flow.

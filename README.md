@@ -74,7 +74,10 @@ The rest are server-side (no `VITE_` prefix). You only need to set keys for the 
 # /api/scan (AI proxy)
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+# Supabase secret key (sb_secret_...) — replaces the legacy service_role key.
+# Used by /api/auth/delete-user and /api/cron/keepalive. The legacy
+# SUPABASE_SERVICE_ROLE_KEY is still read as a fallback if SUPABASE_SECRET_KEY is unset.
+SUPABASE_SECRET_KEY=
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 GEMINI_API_KEY=

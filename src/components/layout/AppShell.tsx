@@ -21,11 +21,25 @@ const STORAGE_KEYS = [
 export default function AppShell({ currentPage, navigate, userId, onSignOut, children }: AppShellProps) {
   const [resetOpen, setResetOpen] = useState(false)
 
-  async function handleReset() {
-    await Promise.all([
-      supabase.from('export_configs').delete().eq('user_id', userId),
-      supabase.from('user_preferences').delete().eq('user_id', userId),
-    ])
+  async function handleReset(deleteAccount: boolean) {
+    if (deleteAccount) {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return
+      const res = await fetch('/api/auth/delete-user', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        alert(`Failed to delete account: ${await res.text()}`)
+        return
+      }
+    } else {
+      await Promise.all([
+        supabase.from('export_configs').delete().eq('user_id', userId),
+        supabase.from('user_preferences').delete().eq('user_id', userId),
+      ])
+    }
     STORAGE_KEYS.forEach(key => localStorage.removeItem(key))
     onSignOut()
   }
@@ -52,7 +66,7 @@ export default function AppShell({ currentPage, navigate, userId, onSignOut, chi
       </footer>
       <ResetDialog
         open={resetOpen}
-        onConfirm={() => { void handleReset() }}
+        onConfirm={(deleteAccount) => { void handleReset(deleteAccount) }}
         onCancel={() => setResetOpen(false)}
       />
     </div>

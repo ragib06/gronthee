@@ -1,16 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { TriangleAlert } from 'lucide-react'
 
 interface ResetDialogProps {
   open: boolean
-  onConfirm: () => void
+  onConfirm: (deleteAccount: boolean) => void
   onCancel: () => void
 }
 
 export default function ResetDialog({ open, onConfirm, onCancel }: ResetDialogProps) {
+  const [deleteAccount, setDeleteAccount] = useState(false)
+
   useEffect(() => {
     if (!open) return
+    setDeleteAccount(false)
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
@@ -52,6 +55,22 @@ export default function ResetDialog({ open, onConfirm, onCancel }: ResetDialogPr
                 </p>
               </div>
             </div>
+
+            <label className="flex items-start gap-2 mb-5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={deleteAccount}
+                onChange={e => setDeleteAccount(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              <span className="text-sm text-gray-700">
+                Delete my account
+                <span className="block text-xs text-gray-400">
+                  Also remove the user record from the database. You'll need to sign up again to use Gronthee.
+                </span>
+              </span>
+            </label>
+
             <div className="flex justify-end gap-3">
               <button
                 type="button"
@@ -62,10 +81,10 @@ export default function ResetDialog({ open, onConfirm, onCancel }: ResetDialogPr
               </button>
               <button
                 type="button"
-                onClick={onConfirm}
+                onClick={() => onConfirm(deleteAccount)}
                 className="px-4 py-2 text-sm rounded-lg text-white bg-red-600 hover:bg-red-700 transition-colors"
               >
-                Reset everything
+                {deleteAccount ? 'Delete account' : 'Reset everything'}
               </button>
             </div>
           </motion.div>
